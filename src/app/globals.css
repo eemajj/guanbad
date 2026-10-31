@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — court green + shuttle-cork amber. Values are RGB triplets for Tailwind alpha support. */
+:root {
+  --bg: 241 245 242;
+  --surface: 255 255 255;
+  --surface-2: 246 249 247;
+  --ink: 20 34 27;
+  --muted: 92 108 99;
+  --line: 219 227 221;
+  --brand: 30 106 77;
+  --brand-deep: 20 76 55;
+  --brand-soft: 226 239 231;
+  --brand-ink: 255 255 255;
+  --accent: 217 131 26;
+  --accent-soft: 251 239 220;
+  --accent-ink: 42 24 4;
+  --ok: 27 127 71;
+  --ok-soft: 224 243 232;
+  --warn: 147 96 15;
+  --warn-soft: 251 240 217;
+  --danger: 178 58 40;
+  --danger-soft: 251 230 226;
+  --court: 30 106 77;
+  --court-line: 233 245 238;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 13 20 17;
+    --surface: 22 32 27;
+    --surface-2: 28 40 34;
+    --ink: 228 236 230;
+    --muted: 151 166 157;
+    --line: 42 56 50;
+    --brand: 52 150 110;
+    --brand-deep: 17 58 44;
+    --brand-soft: 29 51 41;
+    --brand-ink: 255 255 255;
+    --accent: 239 162 67;
+    --accent-soft: 58 42 20;
+    --accent-ink: 29 18 5;
+    --ok: 82 194 135;
+    --ok-soft: 23 53 39;
+    --warn: 229 176 79;
+    --warn-soft: 56 43 18;
+    --danger: 240 128 108;
+    --danger-soft: 61 31 26;
+    --court: 35 119 90;
+    --court-line: 207 233 220;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-size: 15px;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-bg;
+  }
+}
+
+@layer components {
+  .input {
+    @apply w-full min-w-0 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:opacity-60;
+  }
+  .num {
+    @apply font-display tabular-nums;
+  }
+}
+
+dialog::backdrop {
+  background: rgb(8 16 12 / 0.5);
+}

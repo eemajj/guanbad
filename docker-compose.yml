@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: guan
+      POSTGRES_PASSWORD: guan
+      POSTGRES_DB: guan
+    ports:
+      - "5432:5432"
+    volumes:
+      - guan-db:/var/lib/postgresql/data
+volumes:
+  guan-db:

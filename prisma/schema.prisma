@@ -1,0 +1,231 @@
+// ระบบจัดการก๊วนแบดมินตัน — data model
+// Money is stored in satang (1 baht = 100 satang) as integers to avoid rounding errors.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+/// เกณฑ์ประเมินมือของก๊วน (BG → P)
+enum Level {
+  BG
+  N_MINUS
+  N
+  NS
+  S
+  P_MINUS
+  P
+}
+
+enum SessionStatus {
+  OPEN // เปิดรับชื่อ
+  LIVE // กำลังตี
+  CLOSED // จบรอบ ออกบิลแล้ว
+}
+
+enum FeeMode {
+  SPLIT // หารค่าคอร์ทเท่ากันทุกคน
+  FLAT // เก็บค่าคอร์ทคนละเท่ากัน
+}
+
+enum ParticipantStatus {
+  ACTIVE
+  RESTING
+  LEFT
+}
+
+enum JoinSource {
+  SELF
+  ADMIN
+}
+
+enum MatchStatus {
+  PLAYING
+  DONE
+  CANCELLED
+}
+
+enum Team {
+  A
+  B
+}
+
+enum ChargeStatus {
+  UNPAID
+  REPORTED // สมาชิกแจ้งว่าโอนแล้ว รอหัวก๊วนยืนยัน
+  PAID
+  WAIVED // ยกเว้นไม่เก็บ
+}
+
+enum ExpenseCategory {
+  COURT
+  SHUTTLE
+  OTHER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  lineId    String?  @unique
+  email     String?  @unique
+  name      String
+  image     String?
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  member    Member?
+}
+
+model Member {
+  id             String        @id @default(cuid())
+  nickname       String
+  fullName       String?
+  phone          String?
+  level          Level         @default(N)
+  note           String?
+  active         Boolean       @default(true)
+  userId         String?       @unique
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// ลิงก์ให้สมาชิกที่หัวก๊วนสร้างไว้ มาผูกกับบัญชี LINE ของตัวเอง
+  claimToken     String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  participations Participant[]
+  matchPlayers   MatchPlayer[]
+  charges        Charge[]
+
+  @@index([nickname])
+}
+
+model Session {
+  id           String        @id @default(cuid())
+  venue        String
+  date         DateTime      @db.Date
+  startTime    String // "19:00"
+  endTime      String // "21:00"
+  /// ค่าคอร์ทต่อคอร์ทต่อชั่วโมง (สตางค์)
+  courtRate    Int
+  /// ราคาลูกต่อลูก (สตางค์)
+  shuttlePrice Int
+  feeMode      FeeMode       @default(SPLIT)
+  /// ค่าคอร์ทต่อหัว เมื่อ feeMode = FLAT (สตางค์)
+  flatFee      Int           @default(0)
+  maxPlayers   Int?
+  selfSignup   Boolean       @default(true)
+  status       SessionStatus @default(OPEN)
+  note         String?
+  createdAt    DateTime      @default(now())
+  startedAt    DateTime?
+  closedAt     DateTime?
+  courts       Court[]
+  participants Participant[]
+  matches      Match[]
+  charges      Charge[]
+  expenses     Expense[]
+
+  @@index([date])
+}
+
+model Court {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name      String
+  position  Int
+  matches   Match[]
+
+  @@unique([sessionId, position])
+}
+
+model Participant {
+  id        String            @id @default(cuid())
+  sessionId String
+  session   Session           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    Member            @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  status    ParticipantStatus @default(ACTIVE)
+  source    JoinSource        @default(ADMIN)
+  joinedAt  DateTime          @default(now())
+  /// เวลาที่เข้าคิวล่าสุด (มาถึง / จบเกม / กลับจากพัก) — ใช้เรียงคิว
+  queuedAt  DateTime          @default(now())
+
+  @@unique([sessionId, memberId])
+}
+
+model Match {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  courtId   String
+  court     Court         @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  status    MatchStatus   @default(PLAYING)
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  winner    Team?
+  shuttles  Int           @default(0)
+  players   MatchPlayer[]
+
+  @@index([sessionId, status])
+}
+
+model MatchPlayer {
+  matchId  String
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  team     Team
+
+  @@id([matchId, memberId])
+}
+
+model Charge {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  memberId      String
+  member        Member       @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  courtFee      Int
+  shuttleFee    Int
+  shuttleCount  Float
+  /// ยอดรวมปัดขึ้นเป็นบาทเต็ม (สตางค์)
+  total         Int
+  status        ChargeStatus @default(UNPAID)
+  reportedAt    DateTime?
+  paidAt        DateTime?
+  confirmedById String?
+  createdAt     DateTime     @default(now())
+
+  @@unique([sessionId, memberId])
+  @@index([status])
+}
+
+model Expense {
+  id        String          @id @default(cuid())
+  sessionId String?
+  session   Session?        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  category  ExpenseCategory
+  amount    Int
+  note      String?
+  spentAt   DateTime        @db.Date
+  createdAt DateTime        @default(now())
+
+  @@index([spentAt])
+}
+
+/// ตั้งค่าของก๊วน (มีแถวเดียว id = "main")
+model Setting {
+  id                  String  @id @default("main")
+  groupName           String  @default("ก๊วนแบด")
+  promptpayId         String?
+  accountName         String?
+  defaultVenue        String?
+  defaultCourtRate    Int     @default(18000)
+  defaultShuttlePrice Int     @default(8500)
+}
