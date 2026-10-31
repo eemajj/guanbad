@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
-import { getSettings } from "@/server/settings";
+import { getSettings } from "@/features/settings/queries";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {

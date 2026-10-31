@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma } from "@/lib/db";
-import { cancelMatch, fillCourts, finishMatch, updateMatchResult } from "@/server/actions/play";
-import { closeSession, startSession } from "@/server/actions/sessions";
+import { prisma } from "@/server/db";
+import { cancelMatch, fillCourts, finishMatch, updateMatchResult } from "@/features/play/actions";
+import { closeSession, startSession } from "@/features/sessions/actions";
 import { actAs, makeMembers, makeSession, makeUser, playingMatches } from "./factory";
 
 const form = (o: Record<string, string>) => {

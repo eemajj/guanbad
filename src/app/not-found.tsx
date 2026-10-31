@@ -1,4 +1,5 @@
-import { LinkButton } from "@/components/ui/button";
+import { paths } from "@/lib/paths";
+import { LinkButton } from "@/ui/button";
 
 export default function NotFound() {
   return (
@@ -6,7 +7,7 @@ export default function NotFound() {
       <div className="flex flex-col items-center gap-3">
         <h1 className="text-2xl font-bold">ไม่พบหน้านี้</h1>
         <p className="text-muted">ลิงก์อาจผิด หรือรายการถูกลบไปแล้ว</p>
-        <LinkButton href="/" variant="primary">
+        <LinkButton href={paths.home} variant="primary">
           กลับหน้าแรก
         </LinkButton>
       </div>

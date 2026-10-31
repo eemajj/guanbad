@@ -1,0 +1,117 @@
+import { paths } from "@/lib/paths";
+import Link from "next/link";
+import { baht, thaiDate } from "@/lib/format";
+import { avgPointDiff, coverage, formatDiff, formatRate, winRate } from "@/domain/results";
+import { getMemberHistory } from "../queries";
+import { ChargeStatusBadge } from "@/features/billing/components/charge-status";
+import { Card, CardBody, CardHeader } from "@/ui/card";
+import { EmptyState } from "@/ui/empty";
+import { Stat } from "@/ui/stat";
+
+/** Stats, partners, recent sessions and bills for one member — used on the member page and on "ของฉัน". */
+export async function MemberHistory({ memberId, payLinks }: { memberId: string; payLinks: boolean }) {
+  const { stats, partners, sessions, charges } = await getMemberHistory(memberId);
+  const decided = stats.wins + stats.losses;
+
+  return (
+    <>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="มาตี / เล่น" value={`${stats.sessions} / ${stats.games}`} sub="รอบ / เกม" />
+        <Stat label="ชนะ–แพ้" value={`${stats.wins}–${stats.losses}`} sub={`อัตราชนะ ${formatRate(winRate(stats))}`} />
+        <Stat
+          label="แต้มได้–เสีย เฉลี่ย"
+          value={formatDiff(avgPointDiff(stats))}
+          sub={stats.scoredGames ? `จาก ${stats.scoredGames} เกมที่มีแต้ม` : "ยังไม่มีเกมที่บันทึกแต้ม"}
+        />
+        <Stat label="ยอดค้าง" value={baht(stats.outstanding)} tone={stats.outstanding ? "danger" : undefined} />
+      </section>
+      {stats.games > 0 && stats.unrecorded > 0 && (
+        <p className="-mt-3 text-xs text-muted">
+          สถิติชนะ/แพ้คิดจาก {decided} จาก {stats.games} เกม ({formatRate(coverage(stats))}) อีก {stats.unrecorded} เกมไม่ได้บันทึกผล
+          จึงไม่นับ
+        </p>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="คู่หู" description="ผลเมื่อจับคู่กับแต่ละคน (เกมที่รู้ผล)" />
+          {partners.length ? (
+            <ul className="divide-y divide-line">
+              {partners.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                  <span className="font-medium">{r.name}</span>
+                  <span className="text-muted">
+                    {r.games} เกม ·{" "}
+                    <span className="num text-ink">
+                      {r.wins}–{r.losses}
+                    </span>{" "}
+                    · {formatRate(r.wins + r.losses ? r.wins / (r.wins + r.losses) : null)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="ยังไม่มีเกมที่เล่น" />
+          )}
+        </Card>
+        <Card>
+          <CardHeader title="รอบที่มาตี" />
+          {sessions.length ? (
+            <ul className="divide-y divide-line">
+              {sessions.map((p) => {
+                const rec = p.record;
+                return (
+                  <li key={p.id}>
+                    <Link
+                      href={paths.session(p.sessionId)}
+                      className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm hover:bg-surface-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{p.session.venue}</div>
+                        <div className="text-xs text-muted">{thaiDate(p.session.date)}</div>
+                      </div>
+                      <span className="text-muted">
+                        {rec.games} เกม · ชนะ {rec.wins} แพ้ {rec.losses}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <EmptyState title="ยังไม่เคยมาตี" />
+          )}
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader title="บิลค่าตี" />
+        {charges.length ? (
+          <ul className="divide-y divide-line">
+            {charges.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{c.session.venue}</div>
+                  <div className="text-xs text-muted">{thaiDate(c.session.date)}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ChargeStatusBadge status={c.status} />
+                  <span className="num w-16 text-right font-bold">{baht(c.total)}</span>
+                  {payLinks && (c.status === "UNPAID" || c.status === "REPORTED") ? (
+                    <Link href={paths.pay(c.id)} className="text-xs font-semibold text-brand hover:underline">
+                      จ่าย
+                    </Link>
+                  ) : (
+                    <span className="w-6" />
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <CardBody className="text-sm text-muted">ยังไม่มีบิล</CardBody>
+        )}
+      </Card>
+    </>
+  );
+}

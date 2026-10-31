@@ -1,5 +1,5 @@
 import type { Level } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { prisma } from "@/server/db";
 import { session } from "./setup";
 
 let n = 0;

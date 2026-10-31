@@ -52,7 +52,7 @@
 - [ ] `npm run check` ผ่าน (typecheck + eslint + prettier + unit test)
 - [ ] วางไฟล์ตามกฎในหัวข้อ 3 (ESLint ตรวจทิศทาง import)
 - [ ] logic ใหม่ที่ไม่ต้องแตะฐานข้อมูลอยู่ใน `domain/` และมีเทสต์
-- [ ] action ใหม่สร้างผ่าน `defineAction` (ตรวจสิทธิ์ + zod + ล็อก + revalidate ในรูปแบบเดียวกัน)
+- [ ] action ใหม่ใช้ `asAdmin`/`asUser` + `inSessionLock` + `refresh.*` (ดู ADR 0004)
 - [ ] ไม่มี string path ตรงๆ ให้ใช้ `paths.*`
 
 **ผู้ใช้**
@@ -76,6 +76,8 @@
 ---
 
 ## 3. โครงสร้างโฟลเดอร์เป้าหมาย
+
+> ทำเสร็จในเฟส 1 แล้ว โครงสร้างปัจจุบันและกฎอยู่ใน [ARCHITECTURE.md](ARCHITECTURE.md) (ต่างจากแผนเดิมเล็กน้อย: ใช้ `asAdmin`/`asUser` แทน `defineAction`, `ui/` import `domain/` ได้)
 
 แบ่งตาม **ฟีเจอร์** แทนการแบ่งตามชนิดไฟล์ เวลาแก้เรื่องไหนให้เปิดโฟลเดอร์เดียว
 
@@ -164,7 +166,7 @@ domain ──▶ (ไม่มี)        ui ──▶ lib เท่านั้
 |---|---|
 | ย้ายไฟล์เข้า `features/` `ui/` `server/` ตามหัวข้อ 3 ทีละ feature (ไม่เปลี่ยนพฤติกรรม) | P3, P4 |
 | ย้าย query ที่อยู่ในหน้าไปไว้ใน `queries.ts` ให้หน้าเหลือแค่ประกอบ UI | P3 |
-| `defineAction()`: รวม auth, zod, lock, revalidate ไว้ที่เดียว | P6, P8 |
+| `asAdmin`/`asUser`, `inSessionLock`, `refresh.*`: รวม auth, error, lock, revalidate ไว้ที่เดียว (ADR 0004) | P6, P8 |
 | `paths.ts`: ฟังก์ชันสร้าง URL ใช้ทั้งใน `<Link>` และ revalidate | P6 |
 | `ui/data-table.tsx` + `domain/labels.ts` | P5 |
 | `docs/ARCHITECTURE.md` + ADR แรก (ดูหัวข้อ "ตัดสินใจก่อนเริ่ม") | — |
