@@ -10,12 +10,16 @@ import { CourtsTab } from "@/features/play/components/courts-tab";
 import { PlayersTab } from "@/features/sessions/components/players-tab";
 import { SessionStatusBadge, SessionSteps } from "@/features/sessions/components/status";
 import { TabLinks } from "@/ui/tabs";
+import { Card, CardHeader } from "@/ui/card";
+import { ActivityList } from "@/features/activity/components/activity-list";
+import { listActivity } from "@/features/activity/queries";
+import type { SessionTab } from "@/lib/paths";
 import { AdminActions } from "@/features/sessions/components/admin-actions";
 import { MyCard } from "@/features/sessions/components/my-card";
 import { getSessionVenue } from "@/features/sessions/queries";
 import { activeRoster } from "@/features/members/queries";
 
-type Tab = "players" | "courts" | "bills";
+type Tab = SessionTab;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const s = await getSessionVenue((await params).id);
@@ -36,7 +40,8 @@ export default async function SessionPage({
   const st = deriveState(s);
   const { tab: tabParam } = await searchParams;
   const fallback: Tab = s.status === "OPEN" ? "players" : s.status === "LIVE" ? "courts" : "bills";
-  const tab: Tab = tabParam === "players" || tabParam === "courts" || tabParam === "bills" ? tabParam : fallback;
+  const allowed: Tab[] = viewer.isAdmin ? ["players", "courts", "bills", "history"] : ["players", "courts", "bills"];
+  const tab: Tab = allowed.includes(tabParam as Tab) ? (tabParam as Tab) : fallback;
   const myId = viewer.member?.id;
 
   const roster = viewer.isAdmin ? await activeRoster() : [];
@@ -77,11 +82,18 @@ export default async function SessionPage({
           { key: "players", label: "ผู้เล่น", href: `?tab=players`, count: s.participants.length },
           { key: "courts", label: "คอร์ท", href: `?tab=courts`, count: st.playingByCourt.size || undefined },
           { key: "bills", label: "ค่าใช้จ่าย", href: `?tab=bills` },
+          ...(viewer.isAdmin ? [{ key: "history", label: "ประวัติ", href: `?tab=history` }] : []),
         ]}
       />
       {tab === "players" && <PlayersTab s={s} st={st} isAdmin={viewer.isAdmin} roster={roster} myMemberId={myId} />}
       {tab === "courts" && <CourtsTab s={s} st={st} isAdmin={viewer.isAdmin} />}
       {tab === "bills" && <BillsTab s={s} st={st} isAdmin={viewer.isAdmin} myMemberId={myId} />}
+      {tab === "history" && (
+        <Card>
+          <CardHeader title="ประวัติของรอบนี้" description="ใครทำอะไร เมื่อไหร่ (เห็นเฉพาะหัวก๊วน)" />
+          <ActivityList rows={await listActivity({ sessionId: s.id })} />
+        </Card>
+      )}
     </>
   );
 }

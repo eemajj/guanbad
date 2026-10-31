@@ -3,12 +3,7 @@ import { prisma } from "@/server/db";
 import { cancelMatch, fillCourts, finishMatch, updateMatchResult } from "@/features/play/actions";
 import { closeSession, startSession } from "@/features/sessions/actions";
 import { actAs, makeMembers, makeSession, makeUser, playingMatches } from "./factory";
-
-const form = (o: Record<string, string>) => {
-  const f = new FormData();
-  for (const [k, v] of Object.entries(o)) f.set(k, v);
-  return f;
-};
+import { form } from "./helpers";
 
 let admin: Awaited<ReturnType<typeof makeUser>>;
 beforeEach(async () => {

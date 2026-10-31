@@ -73,14 +73,15 @@ enum ExpenseCategory {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  lineId    String?  @unique
-  email     String?  @unique
-  name      String
-  image     String?
-  role      Role     @default(MEMBER)
-  createdAt DateTime @default(now())
-  member    Member?
+  id         String     @id @default(cuid())
+  lineId     String?    @unique
+  email      String?    @unique
+  name       String
+  image      String?
+  role       Role       @default(MEMBER)
+  createdAt  DateTime   @default(now())
+  member     Member?
+  activities Activity[]
 }
 
 model Member {
@@ -130,6 +131,7 @@ model Session {
   matches      Match[]
   charges      Charge[]
   expenses     Expense[]
+  activities   Activity[]
 
   @@index([date])
 }
@@ -232,4 +234,24 @@ model Setting {
   defaultVenue        String?
   defaultCourtRate    Int     @default(18000)
   defaultShuttlePrice Int     @default(8500)
+}
+
+/// ประวัติการแก้ไข: ใครทำอะไร เมื่อไหร่ (เน้นเรื่องเงิน ผลการแข่ง และการลบ)
+model Activity {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// เช่น "charge.paid", "match.result", "session.close"
+  type      String
+  /// ข้อความภาษาไทยที่แสดงในหน้าประวัติ
+  summary   String
+  /// ค่าก่อน/หลัง หรือข้อมูลสำหรับย้อนกลับ
+  data      Json?
+
+  @@index([sessionId, at])
+  @@index([at])
+  @@index([type, at])
 }

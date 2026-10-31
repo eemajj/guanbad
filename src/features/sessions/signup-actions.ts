@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Level, ParticipantStatus } from "@prisma/client";
 import { isLevel } from "@/domain/levels";
 import { asAdmin, asUser } from "@/server/action";
+import { audit } from "@/server/activity";
 import { prisma } from "@/server/db";
 import { inSessionLock } from "@/server/lock";
 import { refresh } from "@/server/revalidate";
@@ -13,7 +14,7 @@ import { loadSession } from "./state";
 
 /** หัวก๊วนเพิ่มสมาชิกจากทะเบียนเข้ารอบ (เรียงตามลำดับที่เลือก) */
 export async function addParticipants(sessionId: string, memberIds: string[]) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     if (!memberIds.length) throw new ActionError("เลือกอย่างน้อย 1 คน");
     const added = await inSessionLock(sessionId, async (tx) => {
       const s = await loadSession(sessionId, tx);
@@ -32,6 +33,10 @@ export async function addParticipants(sessionId: string, memberIds: string[]) {
           queuedAt: new Date(now + i),
         })),
       });
+      if (fresh.length) {
+        const names = (await tx.member.findMany({ where: { id: { in: fresh } }, select: { nickname: true } })).map((m) => m.nickname);
+        await audit(viewer, { type: "participant.add", sessionId, summary: `เพิ่ม ${names.join(", ")}`, data: { memberIds: fresh } }, tx);
+      }
       if (s.status === "LIVE") await assignCourts(tx, sessionId);
       return fresh.length;
     });
@@ -75,6 +80,7 @@ export async function joinSession(sessionId: string) {
       if (s.participants.some((p) => p.memberId === memberId)) throw new ActionError("คุณลงชื่อไว้แล้ว");
       if (s.maxPlayers && s.participants.length >= s.maxPlayers) throw new ActionError(`รอบนี้เต็มแล้ว (${s.maxPlayers} คน)`);
       await tx.participant.create({ data: { sessionId, memberId, source: "SELF" } });
+      await audit(viewer, { type: "participant.join", sessionId, summary: `${viewer.member!.nickname} ลงชื่อเอง` }, tx);
       if (s.status === "LIVE") await assignCourts(tx, sessionId);
     });
     refresh.session(sessionId);
@@ -102,11 +108,23 @@ export async function removeParticipant(participantId: string) {
       const charge = await tx.charge.findUnique({ where: { sessionId_memberId: { sessionId: p.sessionId, memberId: p.memberId } } });
       if (charge) throw new ActionError("ออกบิลแล้ว ลบไม่ได้");
       await tx.participant.delete({ where: { id: participantId } });
+      const self = p.memberId === viewer.member?.id;
+      await audit(
+        viewer,
+        {
+          type: "participant.remove",
+          sessionId: p.sessionId,
+          summary: self ? `${p.member.nickname} ถอนชื่อ` : `ลบ ${p.member.nickname} ออกจากรอบ`,
+        },
+        tx,
+      );
     });
     refresh.session(p.sessionId);
     return { ok: true, message: p.memberId === viewer.member?.id ? "ถอนชื่อแล้ว" : "ลบออกจากรอบแล้ว" };
   });
 }
+
+const STATUS_LABEL: Record<ParticipantStatus, string> = { ACTIVE: "เล่น", RESTING: "พัก", LEFT: "กลับบ้าน" };
 
 const STATUS_MESSAGE: Record<ParticipantStatus, string> = {
   ACTIVE: "กลับเข้าคิวแล้ว",
@@ -121,6 +139,15 @@ export async function setParticipantStatus(participantId: string, status: Partic
     await inSessionLock(p.sessionId, async (tx) => {
       const backInQueue = status === "ACTIVE" && p.status !== "ACTIVE";
       await tx.participant.update({ where: { id: participantId }, data: { status, ...(backInQueue ? { queuedAt: new Date() } : {}) } });
+      await audit(
+        viewer,
+        {
+          type: "participant.status",
+          sessionId: p.sessionId,
+          summary: `${p.member.nickname}: ${STATUS_LABEL[p.status]} → ${STATUS_LABEL[status]}`,
+        },
+        tx,
+      );
       if (status === "ACTIVE") await assignCourts(tx, p.sessionId);
     });
     refresh.session(p.sessionId);

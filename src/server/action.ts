@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import type { ActionResult } from "@/lib/action-result";
+import { logError } from "@/server/log";
 import { ActionError, requireAdminAction, requireViewerAction, type Viewer } from "@/server/viewer";
 
 /**
@@ -26,8 +27,8 @@ async function run(fn: () => Promise<ActionResult | void>): Promise<ActionResult
   } catch (e) {
     if (e instanceof ActionError) return { ok: false, error: e.message };
     if (e instanceof ZodError) return { ok: false, error: e.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
-    console.error("[action] unexpected error", e);
-    return { ok: false, error: "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง" };
+    const ref = logError("action", e);
+    return { ok: false, error: `เกิดข้อผิดพลาด ลองใหม่อีกครั้ง (รหัสอ้างอิง ${ref})` };
   }
 }
 

@@ -8,6 +8,8 @@ import { QrCode } from "@/ui/qr";
 import { Card, CardBody, CardHeader } from "@/ui/card";
 import { Field, Input } from "@/ui/field";
 import { PageHeader } from "@/ui/page-header";
+import { LinkButton } from "@/ui/button";
+import { paths } from "@/lib/paths";
 
 export const metadata = { title: "ตั้งค่า" };
 
@@ -18,7 +20,14 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="ตั้งค่าก๊วน" />
+      <PageHeader
+        title="ตั้งค่าก๊วน"
+        actions={
+          <LinkButton href={paths.activity()} variant="secondary">
+            ประวัติการแก้ไข
+          </LinkButton>
+        }
+      />
       <Card>
         <CardHeader
           title="ข้อมูลก๊วนและการรับเงิน"

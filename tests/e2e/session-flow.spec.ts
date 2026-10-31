@@ -81,4 +81,10 @@ test("organiser and member go through a full session", async ({ browser }) => {
   await expect(org.getByText("รอยืนยันการโอน 1 รายการ")).toBeVisible();
   await org.getByRole("button", { name: "ยืนยันรับเงิน" }).click();
   await expectToast(org, "ได้รับเงินแล้ว");
+
+  // Everything money-related is in the session history
+  await org.goto(`${sessionUrl}?tab=history`);
+  await expect(org.getByText(/แจ้งโอนแล้ว → ได้รับแล้ว/)).toBeVisible();
+  await expect(org.getByText(/จบรอบ ออกบิล 5 คน/)).toBeVisible();
+  await expect(org.getByText(/จบเกมคอร์ท 5:.*21–17/)).toBeVisible();
 });

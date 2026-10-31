@@ -2,7 +2,7 @@
  * Every URL in the app, in one place. Used both for links and for cache revalidation,
  * so renaming a route can't silently leave a page stale.
  */
-export type SessionTab = "players" | "courts" | "bills";
+export type SessionTab = "players" | "courts" | "bills" | "history";
 
 export const paths = {
   home: "/",
@@ -23,6 +23,7 @@ export const paths = {
   stats: "/stats",
   finance: "/finance",
   settings: "/settings",
+  activity: (group?: string) => (group && group !== "all" ? `/activity?g=${group}` : "/activity"),
 
   pay: (chargeId: string) => `/pay/${chargeId}`,
   claim: (token: string) => `/claim/${token}`,

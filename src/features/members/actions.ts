@@ -6,9 +6,10 @@ import type { Level } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { paths } from "@/lib/paths";
 import { asAdmin, asUser } from "@/server/action";
+import { audit } from "@/server/activity";
 import { refresh } from "@/server/revalidate";
 import { ActionError } from "@/server/viewer";
-import { isLevel } from "@/domain/levels";
+import { isLevel, levelCode } from "@/domain/levels";
 
 const memberSchema = z.object({
   nickname: z.string().trim().min(1, "กรุณาใส่ชื่อเล่น").max(30, "ชื่อเล่นยาวเกินไป"),
@@ -39,10 +40,12 @@ async function assertUniqueNickname(nickname: string, exceptId?: string) {
 const CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function createMember(form: FormData) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const data = parse(form);
     await assertUniqueNickname(data.nickname);
     const m = await prisma.member.create({ data });
+    await audit(viewer, { type: "member.create", summary: `เพิ่มสมาชิก ${m.nickname} (${levelCode(m.level)})` });
+    refresh.member(m.id);
     return { ok: true, message: `เพิ่ม ${m.nickname} แล้ว`, redirect: paths.member(m.id) };
   });
 }
@@ -52,16 +55,24 @@ export async function updateMember(id: string, form: FormData) {
     if (!viewer.isAdmin && viewer.member?.id !== id) throw new ActionError("แก้ได้เฉพาะโปรไฟล์ของตัวเอง");
     const data = parse(form);
     await assertUniqueNickname(data.nickname, id);
+    const before = await prisma.member.findUnique({ where: { id } });
+    if (!before) throw new ActionError("ไม่พบสมาชิก");
     // Members may not edit the organiser's private note about them.
     await prisma.member.update({ where: { id }, data: viewer.isAdmin ? data : { ...data, note: undefined } });
+    const changes = [
+      before.nickname !== data.nickname && `ชื่อ ${before.nickname} → ${data.nickname}`,
+      before.level !== data.level && `ระดับ ${levelCode(before.level)} → ${levelCode(data.level)}`,
+    ].filter(Boolean);
+    if (changes.length) await audit(viewer, { type: "member.update", summary: `${data.nickname}: ${changes.join(", ")}` });
     refresh.member(id);
     return { ok: true, message: "บันทึกแล้ว" };
   });
 }
 
 export async function setMemberActive(id: string, active: boolean) {
-  return asAdmin(async () => {
-    await prisma.member.update({ where: { id }, data: { active } });
+  return asAdmin(async (viewer) => {
+    const m = await prisma.member.update({ where: { id }, data: { active } });
+    await audit(viewer, { type: "member.active", summary: `${m.nickname}: ${active ? "กลับมาเป็นสมาชิก" : "ย้ายไป “ไม่ได้มาแล้ว”"}` });
     refresh.member(id);
     return { ok: true, message: active ? "เปิดใช้งานสมาชิกแล้ว" : "ย้ายไปสมาชิกที่ไม่ได้มาแล้ว" };
   });
@@ -69,7 +80,7 @@ export async function setMemberActive(id: string, active: boolean) {
 
 /** สร้างลิงก์ให้สมาชิกที่หัวก๊วนเพิ่มไว้ มาผูกกับบัญชี LINE ของตัวเอง */
 export async function createClaimLink(id: string) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const m = await prisma.member.findUnique({ where: { id } });
     if (!m) throw new ActionError("ไม่พบสมาชิก");
     if (m.userId) throw new ActionError("สมาชิกคนนี้ผูกบัญชีแล้ว");
@@ -77,6 +88,7 @@ export async function createClaimLink(id: string) {
       where: { id },
       data: { claimToken: randomBytes(12).toString("base64url"), claimExpiresAt: new Date(Date.now() + CLAIM_TTL_MS) },
     });
+    await audit(viewer, { type: "member.claim-link", summary: `สร้างลิงก์ผูกบัญชีให้ ${m.nickname} (ใช้ได้ 7 วัน)` });
     refresh.member(id);
     return { ok: true, message: "สร้างลิงก์แล้ว" };
   });
@@ -86,9 +98,11 @@ export async function claimMember(token: string) {
   return asUser(async (viewer) => {
     if (viewer.member) throw new ActionError(`บัญชีนี้เป็น “${viewer.member.nickname}” อยู่แล้ว`);
     const m = await prisma.member.findUnique({ where: { claimToken: token } });
-    if (!m || m.userId || !m.claimExpiresAt || m.claimExpiresAt < new Date())
+    if (!m || m.userId || !m.claimExpiresAt || m.claimExpiresAt < new Date()) {
       throw new ActionError("ลิงก์นี้ใช้ไม่ได้แล้ว ขอลิงก์ใหม่จากหัวก๊วน");
+    }
     await prisma.member.update({ where: { id: m.id }, data: { userId: viewer.user.id, claimToken: null, claimExpiresAt: null } });
+    await audit(viewer, { type: "member.claim", summary: `${m.nickname} ผูกกับบัญชี LINE “${viewer.user.name}”` });
     refresh.everything();
     return { ok: true, message: `ยินดีต้อนรับ ${m.nickname}`, redirect: paths.home };
   });
@@ -101,6 +115,7 @@ export async function createMyProfile(form: FormData) {
     const data = parse(form);
     await assertUniqueNickname(data.nickname);
     await prisma.member.create({ data: { ...data, note: null, userId: viewer.user.id } });
+    await audit(viewer, { type: "member.create", summary: `${data.nickname} สมัครเอง (${levelCode(data.level)})` });
     refresh.everything();
     return { ok: true, message: `ยินดีต้อนรับ ${data.nickname}`, redirect: paths.home };
   });
@@ -112,7 +127,9 @@ export async function setUserRole(userId: string, role: "ADMIN" | "MEMBER") {
       const admins = await prisma.user.count({ where: { role: "ADMIN" } });
       if (admins <= 1) throw new ActionError("ต้องมีหัวก๊วนอย่างน้อย 1 คน");
     }
-    await prisma.user.update({ where: { id: userId }, data: { role } });
+    const u = await prisma.user.update({ where: { id: userId }, data: { role }, include: { member: true } });
+    const who = u.member?.nickname ?? u.name;
+    await audit(viewer, { type: "user.role", summary: role === "ADMIN" ? `ตั้ง ${who} เป็นหัวก๊วน` : `ถอด ${who} จากหัวก๊วน` });
     refresh.everything();
     return { ok: true, message: role === "ADMIN" ? "ตั้งเป็นหัวก๊วนแล้ว" : "ตั้งเป็นสมาชิกแล้ว" };
   });

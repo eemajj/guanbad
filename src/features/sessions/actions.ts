@@ -1,7 +1,9 @@
 "use server";
 
 import { paths } from "@/lib/paths";
+import { thaiDate } from "@/lib/format";
 import { asAdmin } from "@/server/action";
+import { audit } from "@/server/activity";
 import { prisma } from "@/server/db";
 import { inSessionLock } from "@/server/lock";
 import { refresh } from "@/server/revalidate";
@@ -11,7 +13,7 @@ import { parseSessionForm } from "./schema";
 import { deriveState, loadSession } from "./state";
 
 export async function createSession(form: FormData) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const { courtNames, data } = parseSessionForm(form);
     const s = await prisma.session.create({
       data: { ...data, courts: { create: courtNames.map((name, position) => ({ name, position })) } },
@@ -19,13 +21,14 @@ export async function createSession(form: FormData) {
     // Next time, the form starts from what was used last.
     const defaults = { defaultVenue: data.venue, defaultCourtRate: data.courtRate, defaultShuttlePrice: data.shuttlePrice };
     await prisma.setting.upsert({ where: { id: "main" }, create: { id: "main", ...defaults }, update: defaults });
+    await audit(viewer, { type: "session.create", sessionId: s.id, summary: `เปิดรอบ ${data.venue} ${thaiDate(data.date)}` });
     refresh.session(s.id);
     return { ok: true, message: "เปิดรอบแล้ว", redirect: paths.session(s.id) };
   });
 }
 
 export async function updateSession(id: string, form: FormData) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const { courtNames, data } = parseSessionForm(form);
     await inSessionLock(id, async (tx) => {
       const s = await loadSession(id, tx);
@@ -44,6 +47,22 @@ export async function updateSession(id: string, form: FormData) {
         }
       }
       await tx.session.update({ where: { id }, data });
+      const money = (x: { courtRate: number; shuttlePrice: number; feeMode: string; flatFee: number }) => ({
+        courtRate: x.courtRate,
+        shuttlePrice: x.shuttlePrice,
+        feeMode: x.feeMode,
+        flatFee: x.flatFee,
+      });
+      await audit(
+        viewer,
+        {
+          type: "session.update",
+          sessionId: id,
+          summary: "แก้ไขรายละเอียดรอบ",
+          data: { before: { ...money(s), courts: s.courts.map((c) => c.name) }, after: { ...money(data), courts: courtNames } },
+        },
+        tx,
+      );
     });
     refresh.session(id);
     return { ok: true, message: "บันทึกแล้ว", redirect: paths.session(id) };
@@ -51,13 +70,14 @@ export async function updateSession(id: string, form: FormData) {
 }
 
 export async function startSession(id: string) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const made = await inSessionLock(id, async (tx) => {
       const s = await loadSession(id, tx);
       if (!s) throw new ActionError("ไม่พบรอบนี้");
       if (s.status !== "OPEN") throw new ActionError("รอบนี้เริ่มไปแล้ว");
       await tx.session.update({ where: { id }, data: { status: "LIVE", startedAt: new Date() } });
-      return assignCourts(tx, id); // everyone starts in the queue in sign-up order
+      await audit(viewer, { type: "session.start", sessionId: id, summary: `เริ่มตี (${s.participants.length} คน)` }, tx);
+      return (await assignCourts(tx, id)).length; // everyone starts in the queue in sign-up order
     });
     refresh.session(id);
     return { ok: true, message: made ? `เริ่มแล้ว จัดคู่ลง ${made} คอร์ท` : "เริ่มแล้ว รอคนครบ 4 คน" };
@@ -66,7 +86,7 @@ export async function startSession(id: string) {
 
 /** จบรอบ: ยกเลิกเกมที่ค้าง ออกบิลให้ทุกคน และบันทึกรายจ่ายค่าคอร์ท/ค่าลูก */
 export async function closeSession(id: string) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     await inSessionLock(id, async (tx) => {
       const before = await loadSession(id, tx);
       if (!before) throw new ActionError("ไม่พบรอบนี้");
@@ -94,6 +114,16 @@ export async function closeSession(id: string) {
         ],
       });
       await tx.session.update({ where: { id }, data: { status: "CLOSED", closedAt: new Date() } });
+      await audit(
+        viewer,
+        {
+          type: "session.close",
+          sessionId: id,
+          summary: `จบรอบ ออกบิล ${fees.members.length} คน รวม ฿${Math.round(fees.billed / 100)}`,
+          data: { billed: fees.billed, courtCost: fees.courtCost, shuttleCost: fees.shuttleCost, shuttlesUsed: fees.shuttlesUsed },
+        },
+        tx,
+      );
     });
     refresh.session(id);
     refresh.money();
@@ -102,13 +132,14 @@ export async function closeSession(id: string) {
 }
 
 export async function reopenSession(id: string) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     await inSessionLock(id, async (tx) => {
       const paid = await tx.charge.count({ where: { sessionId: id, status: { in: ["PAID", "REPORTED"] } } });
       if (paid) throw new ActionError("มีคนจ่ายหรือแจ้งโอนแล้ว เปิดรอบใหม่ไม่ได้ ให้แก้ทีละบิลแทน");
       await tx.charge.deleteMany({ where: { sessionId: id } });
       await tx.expense.deleteMany({ where: { sessionId: id, category: { in: ["COURT", "SHUTTLE"] } } });
       await tx.session.update({ where: { id }, data: { status: "LIVE", closedAt: null } });
+      await audit(viewer, { type: "session.reopen", sessionId: id, summary: "เปิดรอบอีกครั้ง (ลบบิลที่ยังไม่จ่ายออก)" }, tx);
     });
     refresh.session(id);
     refresh.money();
@@ -117,9 +148,17 @@ export async function reopenSession(id: string) {
 }
 
 export async function deleteSession(id: string) {
-  return asAdmin(async () => {
+  return asAdmin(async (viewer) => {
     const paid = await prisma.charge.count({ where: { sessionId: id, status: "PAID" } });
     if (paid) throw new ActionError("รอบนี้มีการรับเงินแล้ว ลบไม่ได้ (เพื่อให้บัญชีตรง)");
+    const s = await prisma.session.findUnique({ where: { id }, include: { _count: { select: { participants: true, matches: true } } } });
+    if (!s) throw new ActionError("ไม่พบรอบนี้");
+    // Not linked to the session (that row is about to go); keep what was deleted in data.
+    await audit(viewer, {
+      type: "session.delete",
+      summary: `ลบรอบ ${s.venue} ${thaiDate(s.date)}`,
+      data: { sessionId: id, venue: s.venue, date: s.date.toISOString(), players: s._count.participants, games: s._count.matches },
+    });
     await prisma.$transaction([
       prisma.matchPlayer.deleteMany({ where: { match: { sessionId: id } } }),
       prisma.charge.deleteMany({ where: { sessionId: id } }),

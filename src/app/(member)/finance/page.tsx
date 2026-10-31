@@ -1,3 +1,4 @@
+import { paths } from "@/lib/paths";
 import { requireAdminPage } from "@/server/viewer";
 import { ExpenseDialog } from "@/features/finance/components/expense-dialog";
 import { MonthDetails } from "@/features/finance/components/month-details";
@@ -31,7 +32,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <PageHeader
         title="การเงิน"
         description="รายรับนับตามวันที่ยืนยันรับเงิน รายจ่ายค่าคอร์ทและค่าลูกบันทึกให้อัตโนมัติเมื่อจบรอบ"
-        actions={<ExpenseDialog />}
+        actions={
+          <>
+            <LinkButton href={paths.activity("money")}>ประวัติการเงิน</LinkButton>
+            <ExpenseDialog />
+          </>
+        }
       />
 
       <div className="flex items-center justify-between gap-3">
