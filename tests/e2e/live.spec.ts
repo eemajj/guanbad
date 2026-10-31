@@ -36,13 +36,15 @@ test("a member's screen follows the organiser without reloading for nothing", as
   await member.goto(`${url}?tab=courts`);
   await expect(member.getByText("ยังไม่มีเกมที่จบ")).toBeVisible();
 
-  // Count full page refreshes on the member's phone while nothing changes.
-  let rscRequests = 0;
+  // Count page refreshes on the member's phone while nothing changes. Link prefetches are not
+  // refreshes (Next 16 schedules them when the browser is idle, so they can land in this window).
+  const refreshes: string[] = [];
   member.on("request", (r) => {
-    if (r.headers()["rsc"] === "1") rscRequests++;
+    const h = r.headers();
+    if (h["rsc"] === "1" && !h["next-router-prefetch"]) refreshes.push(r.url());
   });
   await member.waitForTimeout(7000);
-  expect(rscRequests).toBe(0);
+  expect(refreshes).toEqual([]);
 
   // Organiser finishes the game; time how long until the next game is on court.
   await org.goto(`${url}?tab=courts`);
