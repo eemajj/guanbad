@@ -4,7 +4,17 @@ import { ActionForm, SubmitButton } from "@/components/action";
 import { LevelPicker } from "@/components/level";
 import { Field, Input, Textarea } from "@/components/ui/field";
 
-export function MemberForm({ action, member, showNote, submitLabel }: { action: (f: FormData) => Promise<ActionResult>; member?: Member; showNote: boolean; submitLabel: string }) {
+export function MemberForm({
+  action,
+  member,
+  showNote,
+  submitLabel,
+}: {
+  action: (f: FormData) => Promise<ActionResult>;
+  member?: Member;
+  showNote: boolean;
+  submitLabel: string;
+}) {
   return (
     <ActionForm action={action} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">

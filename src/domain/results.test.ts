@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { avgPointDiff, normalizeResult, pairRecords, partnerRecords, playerRecords, rankPlayers, recordCoverage, winRate, type ResultMatch } from "./results";
+import {
+  avgPointDiff,
+  normalizeResult,
+  pairRecords,
+  partnerRecords,
+  playerRecords,
+  rankPlayers,
+  recordCoverage,
+  winRate,
+  type ResultMatch,
+} from "./results";
 
 describe("normalizeResult", () => {
   it("accepts an empty result (organiser forgot)", () => {
@@ -23,7 +33,13 @@ describe("normalizeResult", () => {
   });
 });
 
-const m = (teamA: string[], teamB: string[], winner: "A" | "B" | null, scoreA: number | null = null, scoreB: number | null = null): ResultMatch => ({ teamA, teamB, winner, scoreA, scoreB });
+const m = (
+  teamA: string[],
+  teamB: string[],
+  winner: "A" | "B" | null,
+  scoreA: number | null = null,
+  scoreB: number | null = null,
+): ResultMatch => ({ teamA, teamB, winner, scoreA, scoreB });
 
 describe("player records", () => {
   const matches = [
@@ -66,7 +82,15 @@ describe("player records", () => {
 
 describe("ranking", () => {
   it("needs a minimum of decided games and orders by win rate then point diff", () => {
-    const r = (wins: number, losses: number, pf = 0, pa = 0, scored = 0) => ({ games: wins + losses, wins, losses, unrecorded: 0, scoredGames: scored, pointsFor: pf, pointsAgainst: pa });
+    const r = (wins: number, losses: number, pf = 0, pa = 0, scored = 0) => ({
+      games: wins + losses,
+      wins,
+      losses,
+      unrecorded: 0,
+      scoredGames: scored,
+      pointsFor: pf,
+      pointsAgainst: pa,
+    });
     const { ranked, unranked } = rankPlayers(
       [
         { memberId: "lucky", record: r(1, 0) },

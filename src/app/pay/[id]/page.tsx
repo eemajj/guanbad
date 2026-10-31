@@ -28,17 +28,23 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
       <div className="text-center">
         <div className="text-sm text-muted">{settings.groupName}</div>
         <h1 className="text-xl font-bold">ค่าตีแบด · {charge.member.nickname}</h1>
-        <div className="text-sm text-muted">{charge.session.venue} · {thaiDate(charge.session.date)}</div>
+        <div className="text-sm text-muted">
+          {charge.session.venue} · {thaiDate(charge.session.date)}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-line bg-surface p-5 text-center">
         <div className="num text-5xl font-bold">{baht(charge.total)}</div>
-        <div className="mt-1 text-sm text-muted">คอร์ท {bahtExact(charge.courtFee)} + ลูก {charge.shuttleCount} ลูก {bahtExact(charge.shuttleFee)}</div>
-        <div className="mt-3"><ChargeStatusBadge status={charge.status} /></div>
+        <div className="mt-1 text-sm text-muted">
+          คอร์ท {bahtExact(charge.courtFee)} + ลูก {charge.shuttleCount} ลูก {bahtExact(charge.shuttleFee)}
+        </div>
+        <div className="mt-3">
+          <ChargeStatusBadge status={charge.status} />
+        </div>
       </div>
 
-      {open && (
-        payload ? (
+      {open &&
+        (payload ? (
           <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-5 text-[#0b1a13]">
             <div className="font-display text-lg font-bold tracking-wide">PromptPay</div>
             <QrCode text={payload} label={`QR พร้อมเพย์ ยอด ${charge.total / 100} บาท`} />
@@ -46,21 +52,42 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
             <div className="text-xs text-[#5c6c63]">สแกนด้วยแอปธนาคาร ยอดเงินใส่ไว้ให้แล้ว</div>
           </div>
         ) : (
-          <p className="rounded-lg bg-warn-soft p-3 text-center text-sm text-warn">หัวก๊วนยังไม่ได้ตั้งค่าพร้อมเพย์ ติดต่อหัวก๊วนเพื่อชำระเงิน</p>
-        )
-      )}
+          <p className="rounded-lg bg-warn-soft p-3 text-center text-sm text-warn">
+            หัวก๊วนยังไม่ได้ตั้งค่าพร้อมเพย์ ติดต่อหัวก๊วนเพื่อชำระเงิน
+          </p>
+        ))}
       {open && settings.promptpayId && <CopyButton text={settings.promptpayId} label="คัดลอกเลขพร้อมเพย์" />}
 
-      {charge.status === "UNPAID" && mine && <ActionButton action={reportPaid.bind(null, charge.id)} variant="primary" size="lg">โอนแล้ว แจ้งหัวก๊วน</ActionButton>}
+      {charge.status === "UNPAID" && mine && (
+        <ActionButton action={reportPaid.bind(null, charge.id)} variant="primary" size="lg">
+          โอนแล้ว แจ้งหัวก๊วน
+        </ActionButton>
+      )}
       {charge.status === "REPORTED" && <p className="text-center text-sm text-muted">แจ้งโอนแล้ว รอหัวก๊วนยืนยัน</p>}
       {viewer?.isAdmin && (
         <div className="flex flex-wrap justify-center gap-2 border-t border-line pt-4">
-          {open && <ActionButton action={setChargeStatus.bind(null, charge.id, "PAID")} variant="primary">ได้รับเงินแล้ว</ActionButton>}
-          {open && <ActionButton action={setChargeStatus.bind(null, charge.id, "WAIVED")} variant="ghost" confirm="ยืนยันยกเว้นบิลนี้">ยกเว้นไม่เก็บ</ActionButton>}
-          {!open && <ActionButton action={setChargeStatus.bind(null, charge.id, "UNPAID")} variant="ghost" confirm="แก้เป็นยังไม่จ่าย">แก้เป็นยังไม่จ่าย</ActionButton>}
+          {open && (
+            <ActionButton action={setChargeStatus.bind(null, charge.id, "PAID")} variant="primary">
+              ได้รับเงินแล้ว
+            </ActionButton>
+          )}
+          {open && (
+            <ActionButton action={setChargeStatus.bind(null, charge.id, "WAIVED")} variant="ghost" confirm="ยืนยันยกเว้นบิลนี้">
+              ยกเว้นไม่เก็บ
+            </ActionButton>
+          )}
+          {!open && (
+            <ActionButton action={setChargeStatus.bind(null, charge.id, "UNPAID")} variant="ghost" confirm="แก้เป็นยังไม่จ่าย">
+              แก้เป็นยังไม่จ่าย
+            </ActionButton>
+          )}
         </div>
       )}
-      {viewer && <Link href={`/sessions/${charge.sessionId}?tab=bills`} className="text-center text-sm text-muted hover:text-ink">← กลับไปที่รอบ</Link>}
+      {viewer && (
+        <Link href={`/sessions/${charge.sessionId}?tab=bills`} className="text-center text-sm text-muted hover:text-ink">
+          ← กลับไปที่รอบ
+        </Link>
+      )}
     </main>
   );
 }

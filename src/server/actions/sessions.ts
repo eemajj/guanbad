@@ -10,7 +10,11 @@ import { deriveState, loadSession } from "@/server/session-state";
 import { assignCourts, lockSession } from "@/server/match-engine";
 
 const time = z.string().regex(/^\d{2}:\d{2}$/, "เวลาไม่ถูกต้อง");
-const money = (label: string) => z.coerce.number({ invalid_type_error: `${label}ต้องเป็นตัวเลข` }).min(0, `${label}ต้องไม่ติดลบ`).max(100000);
+const money = (label: string) =>
+  z.coerce
+    .number({ invalid_type_error: `${label}ต้องเป็นตัวเลข` })
+    .min(0, `${label}ต้องไม่ติดลบ`)
+    .max(100000);
 
 const sessionSchema = z.object({
   venue: z.string().trim().min(1, "กรุณาใส่ชื่อสนาม").max(80),
@@ -19,13 +23,21 @@ const sessionSchema = z.object({
   endTime: time,
   courts: z
     .string()
-    .transform((v) => v.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean))
+    .transform((v) =>
+      v
+        .split(/[,\s]+/)
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
     .pipe(z.array(z.string().max(10)).min(1, "ต้องมีอย่างน้อย 1 คอร์ท").max(12, "สูงสุด 12 คอร์ท")),
   courtRate: money("ค่าคอร์ท"),
   shuttlePrice: money("ราคาลูก"),
   feeMode: z.enum(["SPLIT", "FLAT"]),
   flatFee: money("ค่าคอร์ทต่อหัว").default(0),
-  maxPlayers: z.preprocess((v) => (v === "" || v == null ? null : v), z.coerce.number().int().min(4, "รับขั้นต่ำ 4 คน").max(200).nullable()),
+  maxPlayers: z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.coerce.number().int().min(4, "รับขั้นต่ำ 4 คน").max(200).nullable(),
+  ),
   selfSignup: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
   note: z.string().trim().max(500).optional(),
 });
@@ -134,7 +146,9 @@ export async function closeSession(id: string) {
       await tx.expense.createMany({
         data: [
           { sessionId: id, category: "COURT", amount: fees.courtCost, spentAt: s.date, note: `${s.courts.length} คอร์ท` },
-          ...(fees.shuttleCost ? [{ sessionId: id, category: "SHUTTLE" as const, amount: fees.shuttleCost, spentAt: s.date, note: `${fees.shuttlesUsed} ลูก` }] : []),
+          ...(fees.shuttleCost
+            ? [{ sessionId: id, category: "SHUTTLE" as const, amount: fees.shuttleCost, spentAt: s.date, note: `${fees.shuttlesUsed} ลูก` }]
+            : []),
         ],
       });
       await tx.session.update({ where: { id }, data: { status: "CLOSED", closedAt: new Date() } });

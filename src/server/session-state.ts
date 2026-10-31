@@ -23,7 +23,13 @@ export const teamOf = (m: MatchWithPlayers, team: "A" | "B") => m.players.filter
 
 export type PlayerStat = PlayerRecord & { shuttles: number; playing: MatchWithPlayers | null };
 
-export const toResultMatch = (m: MatchWithPlayers): ResultMatch => ({ teamA: teamOf(m, "A"), teamB: teamOf(m, "B"), winner: m.winner, scoreA: m.scoreA, scoreB: m.scoreB });
+export const toResultMatch = (m: MatchWithPlayers): ResultMatch => ({
+  teamA: teamOf(m, "A"),
+  teamB: teamOf(m, "B"),
+  winner: m.winner,
+  scoreA: m.scoreA,
+  scoreB: m.scoreB,
+});
 
 /** Everything the session screens need, derived from one loaded session. */
 export function deriveState(s: SessionDetail) {
@@ -69,14 +75,27 @@ export function deriveState(s: SessionDetail) {
     feeMode: s.feeMode,
     flatFee: s.flatFee,
     memberIds: s.participants.map((p) => p.memberId),
-    matches: s.matches.filter((m) => m.status === "DONE").map((m) => ({ playerIds: m.players.map((p) => p.memberId), shuttles: m.shuttles })),
+    matches: s.matches
+      .filter((m) => m.status === "DONE")
+      .map((m) => ({ playerIds: m.players.map((p) => p.memberId), shuttles: m.shuttles })),
   });
 
   const memberName = new Map(s.participants.map((p) => [p.memberId, p.member.nickname]));
 
   const results = recordCoverage(done);
 
-  return { stats, results, history, queue, playingByCourt, freeCourts, next, fees, memberName, hours: hoursBetween(s.startTime, s.endTime) };
+  return {
+    stats,
+    results,
+    history,
+    queue,
+    playingByCourt,
+    freeCourts,
+    next,
+    fees,
+    memberName,
+    hours: hoursBetween(s.startTime, s.endTime),
+  };
 }
 
 export type SessionState = ReturnType<typeof deriveState>;

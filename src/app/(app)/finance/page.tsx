@@ -66,16 +66,33 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       />
 
       <div className="flex items-center justify-between gap-3">
-        <LinkButton href={`?m=${shiftMonth(ym, -1)}`} variant="ghost" size="sm">← เดือนก่อน</LinkButton>
+        <LinkButton href={`?m=${shiftMonth(ym, -1)}`} variant="ghost" size="sm">
+          ← เดือนก่อน
+        </LinkButton>
         <h2 className="text-lg font-semibold">{thaiMonth(ym)}</h2>
-        {ym < current ? <LinkButton href={`?m=${shiftMonth(ym, 1)}`} variant="ghost" size="sm">เดือนถัดไป →</LinkButton> : <span className="w-24" />}
+        {ym < current ? (
+          <LinkButton href={`?m=${shiftMonth(ym, 1)}`} variant="ghost" size="sm">
+            เดือนถัดไป →
+          </LinkButton>
+        ) : (
+          <span className="w-24" />
+        )}
       </div>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="รับเงินแล้ว" value={baht(month.received)} sub={`${month.paidCount} บิล`} tone="ok" />
-        <Stat label="รายจ่าย" value={baht(month.expenseTotal)} sub={`คอร์ท ${baht(month.byCategory.COURT)} · ลูก ${baht(month.byCategory.SHUTTLE)}`} />
+        <Stat
+          label="รายจ่าย"
+          value={baht(month.expenseTotal)}
+          sub={`คอร์ท ${baht(month.byCategory.COURT)} · ลูก ${baht(month.byCategory.SHUTTLE)}`}
+        />
         <Stat label="คงเหลือ" value={baht(net)} sub="รับเงินแล้ว − รายจ่าย" tone={net < 0 ? "danger" : undefined} />
-        <Stat label="ยอดค้างทั้งหมด" value={baht(owedTotal)} sub={`${owed.length} บิล (ทุกเดือน)`} tone={owedTotal ? "danger" : undefined} />
+        <Stat
+          label="ยอดค้างทั้งหมด"
+          value={baht(owedTotal)}
+          sub={`${owed.length} บิล (ทุกเดือน)`}
+          tone={owedTotal ? "danger" : undefined}
+        />
       </section>
 
       <Card>
@@ -89,23 +106,45 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                   <th className="hidden px-2 py-2 font-semibold sm:table-cell">รอบ</th>
                   <th className="hidden px-2 py-2 font-semibold sm:table-cell">สถานะ</th>
                   <th className="px-2 py-2 text-right font-semibold">ยอด</th>
-                  <th className="px-5 py-2"><span className="sr-only">จัดการ</span></th>
+                  <th className="px-5 py-2">
+                    <span className="sr-only">จัดการ</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {owed.map((c) => (
                   <tr key={c.id}>
                     <td className="px-4 py-2.5 sm:px-5">
-                      <Link href={`/members/${c.memberId}`} className="font-semibold hover:underline">{c.member.nickname}</Link>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted sm:hidden"><ChargeStatusBadge status={c.status} />{thaiDate(c.session.date)}</div>
+                      <Link href={`/members/${c.memberId}`} className="font-semibold hover:underline">
+                        {c.member.nickname}
+                      </Link>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted sm:hidden">
+                        <ChargeStatusBadge status={c.status} />
+                        {thaiDate(c.session.date)}
+                      </div>
                     </td>
-                    <td className="hidden px-2 py-2.5 sm:table-cell"><Link href={`/sessions/${c.sessionId}?tab=bills`} className="hover:underline">{c.session.venue}</Link> <span className="text-muted">· {thaiDate(c.session.date)}</span></td>
-                    <td className="hidden px-2 py-2.5 sm:table-cell"><ChargeStatusBadge status={c.status} /></td>
+                    <td className="hidden px-2 py-2.5 sm:table-cell">
+                      <Link href={`/sessions/${c.sessionId}?tab=bills`} className="hover:underline">
+                        {c.session.venue}
+                      </Link>{" "}
+                      <span className="text-muted">· {thaiDate(c.session.date)}</span>
+                    </td>
+                    <td className="hidden px-2 py-2.5 sm:table-cell">
+                      <ChargeStatusBadge status={c.status} />
+                    </td>
                     <td className="num px-2 py-2.5 text-right font-bold">{baht(c.total)}</td>
                     <td className="px-4 py-2.5 sm:px-5">
                       <div className="flex flex-wrap justify-end gap-1">
-                        <Link href={`/pay/${c.id}`} className={buttonClass("ghost", "sm")}>QR</Link>
-                        <ActionButton action={setChargeStatus.bind(null, c.id, "PAID")} size="sm" variant={c.status === "REPORTED" ? "primary" : "secondary"}>รับเงินแล้ว</ActionButton>
+                        <Link href={`/pay/${c.id}`} className={buttonClass("ghost", "sm")}>
+                          QR
+                        </Link>
+                        <ActionButton
+                          action={setChargeStatus.bind(null, c.id, "PAID")}
+                          size="sm"
+                          variant={c.status === "REPORTED" ? "primary" : "secondary"}
+                        >
+                          รับเงินแล้ว
+                        </ActionButton>
                       </div>
                     </td>
                   </tr>
@@ -135,10 +174,17 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                 <tbody className="divide-y divide-line">
                   {month.sessionRows.map((r) => (
                     <tr key={r.id}>
-                      <td className="px-5 py-2.5"><Link href={`/sessions/${r.id}?tab=bills`} className="font-medium hover:underline">{thaiDate(r.date)}</Link> <span className="text-muted">· {r.players} คน</span></td>
+                      <td className="px-5 py-2.5">
+                        <Link href={`/sessions/${r.id}?tab=bills`} className="font-medium hover:underline">
+                          {thaiDate(r.date)}
+                        </Link>{" "}
+                        <span className="text-muted">· {r.players} คน</span>
+                      </td>
                       <td className="num px-2 py-2.5 text-right">{baht(r.cost)}</td>
                       <td className="num px-2 py-2.5 text-right">{baht(r.billed)}</td>
-                      <td className={`num px-5 py-2.5 text-right font-semibold ${r.received >= r.billed ? "text-ok" : ""}`}>{baht(r.received)}</td>
+                      <td className={`num px-5 py-2.5 text-right font-semibold ${r.received >= r.billed ? "text-ok" : ""}`}>
+                        {baht(r.received)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -156,12 +202,22 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
               {month.expenses.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2"><Badge>{CATEGORY[e.category]}</Badge><span className="truncate">{e.note}</span></div>
-                    <div className="text-xs text-muted">{thaiDate(e.spentAt)}{e.session ? ` · จากรอบ ${e.session.venue}` : " · บันทึกเอง"}</div>
+                    <div className="flex items-center gap-2">
+                      <Badge>{CATEGORY[e.category]}</Badge>
+                      <span className="truncate">{e.note}</span>
+                    </div>
+                    <div className="text-xs text-muted">
+                      {thaiDate(e.spentAt)}
+                      {e.session ? ` · จากรอบ ${e.session.venue}` : " · บันทึกเอง"}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="num font-semibold">{baht(e.amount)}</span>
-                    {!e.sessionId && <ActionButton action={deleteExpense.bind(null, e.id)} size="sm" variant="ghost" confirm="ลบ">ลบ</ActionButton>}
+                    {!e.sessionId && (
+                      <ActionButton action={deleteExpense.bind(null, e.id)} size="sm" variant="ghost" confirm="ลบ">
+                        ลบ
+                      </ActionButton>
+                    )}
                   </div>
                 </li>
               ))}

@@ -15,7 +15,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-4 py-10 text-center">
-      {!member || member.userId ? (
+      {!member || member.userId || !member.claimExpiresAt || member.claimExpiresAt < new Date() ? (
         <>
           <h1 className="text-xl font-bold">ลิงก์นี้ใช้ไม่ได้แล้ว</h1>
           <p className="text-sm text-muted">ลิงก์อาจถูกใช้ไปแล้ว ขอลิงก์ใหม่จากหัวก๊วน</p>
@@ -31,7 +31,9 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
         <>
           <h1 className="text-2xl font-bold">คุณคือ “{member.nickname}” ใช่ไหม?</h1>
           <p className="text-sm text-muted">ผูกชื่อนี้กับบัญชี LINE ของคุณ แล้วคุณจะลงชื่อ ขอพัก และจ่ายเงินเองได้ ประวัติเดิมยังอยู่ครบ</p>
-          <ActionButton action={claimMember.bind(null, token)} variant="primary" size="lg">ใช่ นี่คือฉัน</ActionButton>
+          <ActionButton action={claimMember.bind(null, token)} variant="primary" size="lg">
+            ใช่ นี่คือฉัน
+          </ActionButton>
         </>
       )}
     </main>

@@ -5,7 +5,15 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { IconChart, IconCourt, IconHome, IconSettings, IconUser, IconUsers, IconWallet } from "@/components/icons";
 
-const ICONS = { chart: IconChart, home: IconHome, court: IconCourt, users: IconUsers, wallet: IconWallet, settings: IconSettings, user: IconUser };
+const ICONS = {
+  chart: IconChart,
+  home: IconHome,
+  court: IconCourt,
+  users: IconUsers,
+  wallet: IconWallet,
+  settings: IconSettings,
+  user: IconUser,
+};
 /** desktopOnly: shown in the sidebar but left out of the phone tab bar to keep it to five items */
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; desktopOnly?: boolean };
 
@@ -23,7 +31,10 @@ export function SideNav({ items }: { items: NavItem[] }) {
             key={it.href}
             href={it.href}
             aria-current={active ? "page" : undefined}
-            className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium", active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10 hover:text-white")}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium",
+              active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10 hover:text-white",
+            )}
           >
             <Icon />
             {it.label}
@@ -44,7 +55,12 @@ export function TabBar({ items: all }: { items: NavItem[] }) {
           const Icon = ICONS[it.icon];
           const active = isActive(path, it.href);
           return (
-            <Link key={it.href} href={it.href} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-brand" : "text-muted")}>
+            <Link
+              key={it.href}
+              href={it.href}
+              aria-current={active ? "page" : undefined}
+              className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-brand" : "text-muted")}
+            >
               <Icon />
               {it.label}
             </Link>

@@ -11,8 +11,16 @@ export default async function NewSessionPage() {
   const s = await getSettings();
   return (
     <>
-      <PageHeader title="เปิดรอบใหม่" back={{ href: "/sessions", label: "รอบตีทั้งหมด" }} description="ค่าเริ่มต้นมาจากรอบล่าสุด แก้ทีหลังได้จนกว่าจะจบรอบ" />
-      <SessionForm action={createSession} defaults={{ venue: s.defaultVenue, courtRate: s.defaultCourtRate, shuttlePrice: s.defaultShuttlePrice }} submitLabel="เปิดรอบ" />
+      <PageHeader
+        title="เปิดรอบใหม่"
+        back={{ href: "/sessions", label: "รอบตีทั้งหมด" }}
+        description="ค่าเริ่มต้นมาจากรอบล่าสุด แก้ทีหลังได้จนกว่าจะจบรอบ"
+      />
+      <SessionForm
+        action={createSession}
+        defaults={{ venue: s.defaultVenue, courtRate: s.defaultCourtRate, shuttlePrice: s.defaultShuttlePrice }}
+        submitLabel="เปิดรอบ"
+      />
     </>
   );
 }

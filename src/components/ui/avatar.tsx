@@ -6,7 +6,14 @@ export function Avatar({ name, image, size = 36, className }: { name: string; im
   const hue = palette[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % palette.length];
   return image ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={image} alt="" width={size} height={size} className={cn("shrink-0 rounded-full object-cover", className)} style={{ width: size, height: size }} />
+    <img
+      src={image}
+      alt=""
+      width={size}
+      height={size}
+      className={cn("shrink-0 rounded-full object-cover", className)}
+      style={{ width: size, height: size }}
+    />
   ) : (
     <span
       aria-hidden

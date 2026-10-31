@@ -48,7 +48,9 @@ export async function setChargeStatus(chargeId: string, status: ChargeStatus) {
     });
     refreshMoney(c.sessionId);
     revalidatePath(`/pay/${chargeId}`);
-    const label = { PAID: "บันทึกว่าได้รับเงินแล้ว", WAIVED: "ยกเว้นบิลนี้แล้ว", UNPAID: "แก้เป็นยังไม่จ่ายแล้ว", REPORTED: "บันทึกแล้ว" }[status];
+    const label = { PAID: "บันทึกว่าได้รับเงินแล้ว", WAIVED: "ยกเว้นบิลนี้แล้ว", UNPAID: "แก้เป็นยังไม่จ่ายแล้ว", REPORTED: "บันทึกแล้ว" }[
+      status
+    ];
     return { ok: true, message: label };
   });
 }
@@ -64,7 +66,9 @@ export async function addExpense(form: FormData) {
   return run(async () => {
     await requireAdminAction();
     const d = expenseSchema.parse(Object.fromEntries(form));
-    await prisma.expense.create({ data: { category: d.category, amount: toSatang(d.amount), spentAt: dateFromISO(d.spentAt), note: d.note } });
+    await prisma.expense.create({
+      data: { category: d.category, amount: toSatang(d.amount), spentAt: dateFromISO(d.spentAt), note: d.note },
+    });
     refreshMoney();
     return { ok: true, message: "บันทึกรายจ่ายแล้ว" };
   });

@@ -9,7 +9,12 @@ export function SessionStatusBadge({ status }: { status: SessionStatus }) {
 }
 
 export function ChargeStatusBadge({ status }: { status: ChargeStatus }) {
-  const map = { UNPAID: ["danger", "ยังไม่จ่าย"], REPORTED: ["accent", "แจ้งโอนแล้ว"], PAID: ["ok", "ได้รับแล้ว"], WAIVED: ["outline", "ยกเว้น"] } as const;
+  const map = {
+    UNPAID: ["danger", "ยังไม่จ่าย"],
+    REPORTED: ["accent", "แจ้งโอนแล้ว"],
+    PAID: ["ok", "ได้รับแล้ว"],
+    WAIVED: ["outline", "ยกเว้น"],
+  } as const;
   const [tone, label] = map[status];
   return <Badge tone={tone}>{label}</Badge>;
 }

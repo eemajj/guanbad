@@ -14,7 +14,8 @@ export function SessionRow({ s, count, joined }: { s: Session & { courts: Court[
         <div className="min-w-0">
           <div className="truncate font-semibold">{s.venue}</div>
           <div className="text-sm text-muted">
-            {s.date.toLocaleDateString("th-TH", { weekday: "short", timeZone: "UTC" })} {s.startTime}–{s.endTime} · {s.courts.length} คอร์ท · {count}
+            {s.date.toLocaleDateString("th-TH", { weekday: "short", timeZone: "UTC" })} {s.startTime}–{s.endTime} · {s.courts.length} คอร์ท
+            · {count}
             {s.maxPlayers ? `/${s.maxPlayers}` : ""} คน
           </div>
         </div>

@@ -7,7 +7,13 @@ import { cn } from "@/lib/cn";
 
 export function LevelBadge({ level, className }: { level: Level; className?: string }) {
   return (
-    <span title={LEVELS[level].name} className={cn("inline-flex h-5 min-w-8 items-center justify-center rounded-md bg-brand-soft px-1.5 font-display text-xs font-bold text-brand", className)}>
+    <span
+      title={LEVELS[level].name}
+      className={cn(
+        "inline-flex h-5 min-w-8 items-center justify-center rounded-md bg-brand-soft px-1.5 font-display text-xs font-bold text-brand",
+        className,
+      )}
+    >
       {LEVELS[level].code}
     </span>
   );

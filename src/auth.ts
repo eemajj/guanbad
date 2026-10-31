@@ -43,7 +43,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: "ทดสอบ",
             credentials: { name: { label: "ชื่อ" } },
             authorize: async (c) => {
-              const name = String(c?.name ?? "").trim().slice(0, 40);
+              const name = String(c?.name ?? "")
+                .trim()
+                .slice(0, 40);
               return name ? { id: `dev:${name}`, name } : null;
             },
           }),

@@ -38,7 +38,13 @@ export function ResultForm({
   const check = normalizeResult({ winner: hasScore ? null : picked, scoreA: num(a), scoreB: num(b) });
   const winner = check.ok ? check.value.winner : null;
   const contradicts = hasScore && check.ok && picked && picked !== winner;
-  const status = !check.ok ? check.error : winner ? (hasScore ? "ระบบคิดผู้ชนะจากแต้มให้แล้ว" : "บันทึกแค่ผู้ชนะ (ไม่มีแต้ม)") : "ยังไม่มีผล เกมนี้จะไม่นับชนะ/แพ้ แก้ทีหลังได้";
+  const status = !check.ok
+    ? check.error
+    : winner
+      ? hasScore
+        ? "ระบบคิดผู้ชนะจากแต้มให้แล้ว"
+        : "บันทึกแค่ผู้ชนะ (ไม่มีแต้ม)"
+      : "ยังไม่มีผล เกมนี้จะไม่นับชนะ/แพ้ แก้ทีหลังได้";
 
   return (
     <ActionForm action={action} closeDialog className="flex flex-col gap-5">
@@ -48,14 +54,28 @@ export function ResultForm({
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-[13px] font-medium text-muted">ผลการแข่ง (ไม่บังคับ)</legend>
         <div className="grid grid-cols-2 gap-2">
-          {([["A", teamA, a, setA], ["B", teamB, b, setB]] as const).map(([side, label, value, set]) => (
-            <div key={side} className={cn("flex flex-col gap-2 rounded-xl border p-2.5", winner === side ? "border-ok bg-ok-soft" : "border-line bg-surface-2")}>
+          {(
+            [
+              ["A", teamA, a, setA],
+              ["B", teamB, b, setB],
+            ] as const
+          ).map(([side, label, value, set]) => (
+            <div
+              key={side}
+              className={cn(
+                "flex flex-col gap-2 rounded-xl border p-2.5",
+                winner === side ? "border-ok bg-ok-soft" : "border-line bg-surface-2",
+              )}
+            >
               <button
                 type="button"
                 aria-pressed={winner === side}
                 disabled={hasScore}
                 onClick={() => setPicked(picked === side ? null : side)}
-                className={cn("min-h-12 rounded-lg px-2 font-display font-semibold disabled:cursor-default", winner === side ? "text-ok" : "text-ink")}
+                className={cn(
+                  "min-h-12 rounded-lg px-2 font-display font-semibold disabled:cursor-default",
+                  winner === side ? "text-ok" : "text-ink",
+                )}
               >
                 {label}
                 {winner === side && <span className="block text-xs">ชนะ</span>}
@@ -76,7 +96,14 @@ export function ResultForm({
           {contradicts ? "แต้มขัดกับทีมที่แตะไว้ ระบบจะใช้ผลตามแต้ม" : status}
         </p>
         {hasScore && (
-          <button type="button" className="self-start text-xs font-medium text-brand" onClick={() => { setA(""); setB(""); }}>
+          <button
+            type="button"
+            className="self-start text-xs font-medium text-brand"
+            onClick={() => {
+              setA("");
+              setB("");
+            }}
+          >
             ล้างแต้ม
           </button>
         )}
@@ -88,9 +115,27 @@ export function ResultForm({
           <div className="text-xs text-muted">{shuttlesLocked ? "ออกบิลแล้ว แก้จำนวนลูกไม่ได้" : "ค่าลูกหาร 4 คนในเกมนี้"}</div>
         </div>
         <div className="flex items-center gap-3">
-          <Button size="lg" className="w-12 px-0 text-xl" disabled={shuttlesLocked} onClick={() => setShuttles(Math.max(0, shuttles - 1))} aria-label="ลดจำนวนลูก">−</Button>
-          <output className="num w-8 text-center text-2xl font-bold" aria-live="polite">{shuttles}</output>
-          <Button size="lg" className="w-12 px-0 text-xl" disabled={shuttlesLocked} onClick={() => setShuttles(Math.min(30, shuttles + 1))} aria-label="เพิ่มจำนวนลูก">+</Button>
+          <Button
+            size="lg"
+            className="w-12 px-0 text-xl"
+            disabled={shuttlesLocked}
+            onClick={() => setShuttles(Math.max(0, shuttles - 1))}
+            aria-label="ลดจำนวนลูก"
+          >
+            −
+          </Button>
+          <output className="num w-8 text-center text-2xl font-bold" aria-live="polite">
+            {shuttles}
+          </output>
+          <Button
+            size="lg"
+            className="w-12 px-0 text-xl"
+            disabled={shuttlesLocked}
+            onClick={() => setShuttles(Math.min(30, shuttles + 1))}
+            aria-label="เพิ่มจำนวนลูก"
+          >
+            +
+          </Button>
         </div>
       </div>
 

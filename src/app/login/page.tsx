@@ -25,9 +25,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
 
         {lineLoginEnabled && (
-          <form action={async () => { "use server"; await signIn("line", { redirectTo: to }); }}>
+          <form
+            action={async () => {
+              "use server";
+              await signIn("line", { redirectTo: to });
+            }}
+          >
             <button className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#06C755] font-semibold text-white hover:brightness-95">
-              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.6 7.2 8.4 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5 1-.4 5.6-3.3 7.7-5.7C21.2 14.6 22 12.9 22 11c0-4.4-4.5-8-10-8z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+                <path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.6 7.2 8.4 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5 1-.4 5.6-3.3 7.7-5.7C21.2 14.6 22 12.9 22 11c0-4.4-4.5-8-10-8z" />
+              </svg>
               เข้าสู่ระบบด้วย LINE
             </button>
           </form>
@@ -36,11 +43,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         {devLoginEnabled && (
           <form
             className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-line p-3"
-            action={async (fd) => { "use server"; await signIn("dev", { name: String(fd.get("name") ?? ""), redirectTo: to }); }}
+            action={async (fd) => {
+              "use server";
+              await signIn("dev", { name: String(fd.get("name") ?? ""), redirectTo: to });
+            }}
           >
             <span className="text-xs font-semibold text-muted">ล็อกอินทดสอบ (ปิดบนเว็บจริง)</span>
             <Input name="name" placeholder="ชื่อผู้ใช้ทดสอบ" required aria-label="ชื่อผู้ใช้ทดสอบ" />
-            <Button type="submit" variant="secondary">เข้าสู่ระบบ</Button>
+            <Button type="submit" variant="secondary">
+              เข้าสู่ระบบ
+            </Button>
           </form>
         )}
 

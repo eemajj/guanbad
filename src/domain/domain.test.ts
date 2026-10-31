@@ -58,7 +58,12 @@ describe("fees", () => {
 
   it("splits court cost evenly and shuttles per game", () => {
     const r = computeFees({
-      courtCount: 2, hours: 2, courtRate: 18000, shuttlePrice: 8500, feeMode: "SPLIT", flatFee: 0,
+      courtCount: 2,
+      hours: 2,
+      courtRate: 18000,
+      shuttlePrice: 8500,
+      feeMode: "SPLIT",
+      flatFee: 0,
       memberIds: ["a", "b", "c", "d", "e"],
       matches: [{ playerIds: ["a", "b", "c", "d"], shuttles: 2 }],
     });
@@ -73,7 +78,16 @@ describe("fees", () => {
   });
 
   it("uses the flat fee per head", () => {
-    const r = computeFees({ courtCount: 1, hours: 2, courtRate: 20000, shuttlePrice: 8000, feeMode: "FLAT", flatFee: 10000, memberIds: ["a"], matches: [] });
+    const r = computeFees({
+      courtCount: 1,
+      hours: 2,
+      courtRate: 20000,
+      shuttlePrice: 8000,
+      feeMode: "FLAT",
+      flatFee: 10000,
+      memberIds: ["a"],
+      matches: [],
+    });
     expect(r.members[0].total).toBe(10000);
   });
 });

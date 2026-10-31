@@ -33,6 +33,11 @@ export function Button({ variant, size, className, type = "button", ...rest }: P
   return <button type={type} className={buttonClass(variant, size, className)} {...rest} />;
 }
 
-export function LinkButton({ variant, size, className, ...rest }: ComponentProps<typeof Link> & { variant?: ButtonVariant; size?: ButtonSize }) {
+export function LinkButton({
+  variant,
+  size,
+  className,
+  ...rest
+}: ComponentProps<typeof Link> & { variant?: ButtonVariant; size?: ButtonSize }) {
   return <Link className={buttonClass(variant, size, className)} {...rest} />;
 }

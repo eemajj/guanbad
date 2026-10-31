@@ -15,9 +15,11 @@ export type MatchResult = { winner: Side | null; scoreA: number | null; scoreB: 
 export const MAX_POINTS = 50;
 
 /** Validate a result typed by the organiser. Returns a clean result or a message to show. */
-export function normalizeResult(input: { winner?: Side | null; scoreA?: number | null; scoreB?: number | null }):
-  | { ok: true; value: MatchResult }
-  | { ok: false; error: string } {
+export function normalizeResult(input: {
+  winner?: Side | null;
+  scoreA?: number | null;
+  scoreB?: number | null;
+}): { ok: true; value: MatchResult } | { ok: false; error: string } {
   const a = input.scoreA ?? null;
   const b = input.scoreB ?? null;
   const winner = input.winner ?? null;
@@ -48,7 +50,15 @@ export type PlayerRecord = {
   pointsAgainst: number;
 };
 
-export const emptyRecord = (): PlayerRecord => ({ games: 0, wins: 0, losses: 0, unrecorded: 0, scoredGames: 0, pointsFor: 0, pointsAgainst: 0 });
+export const emptyRecord = (): PlayerRecord => ({
+  games: 0,
+  wins: 0,
+  losses: 0,
+  unrecorded: 0,
+  scoredGames: 0,
+  pointsFor: 0,
+  pointsAgainst: 0,
+});
 
 export function playerRecords(matches: ResultMatch[]): Map<string, PlayerRecord> {
   const out = new Map<string, PlayerRecord>();
@@ -121,10 +131,11 @@ export function rankPlayers(rows: RankRow[], minDecided: number) {
   const decided = (r: PlayerRecord) => r.wins + r.losses;
   const ranked = rows
     .filter((r) => decided(r.record) >= minDecided)
-    .sort((x, y) =>
-      (winRate(y.record) ?? 0) - (winRate(x.record) ?? 0) ||
-      (avgPointDiff(y.record) ?? -999) - (avgPointDiff(x.record) ?? -999) ||
-      y.record.wins - x.record.wins,
+    .sort(
+      (x, y) =>
+        (winRate(y.record) ?? 0) - (winRate(x.record) ?? 0) ||
+        (avgPointDiff(y.record) ?? -999) - (avgPointDiff(x.record) ?? -999) ||
+        y.record.wins - x.record.wins,
     );
   const unranked = rows.filter((r) => decided(r.record) < minDecided).sort((x, y) => y.record.games - x.record.games);
   return { ranked, unranked };

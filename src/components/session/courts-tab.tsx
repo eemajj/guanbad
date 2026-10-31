@@ -3,7 +3,7 @@ import { teamOf } from "@/server/session-state";
 import { levelCode } from "@/domain/levels";
 import { cancelMatch, fillCourts, finishMatch, substitutePlayer, updateMatchResult } from "@/server/actions/play";
 import { startSession } from "@/server/actions/sessions";
-import { minutesSince, thaiDateTime } from "@/lib/format";
+import { minutesSince, thaiTime } from "@/lib/format";
 import { ActionButton } from "@/components/action";
 import { Dialog } from "@/components/dialog";
 import { ResultForm } from "@/components/session/result-form";
@@ -23,7 +23,13 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
         <EmptyState
           title="รอบยังไม่เริ่ม"
           description={`ตอนนี้ลงชื่อ ${s.participants.length} คน เมื่อถึงสนามแล้ว หัวก๊วนกด “เริ่มตี” ระบบจะจัดคู่ลงทุกคอร์ทให้`}
-          action={isAdmin && <ActionButton action={startSession.bind(null, s.id)} variant="primary" size="lg">เริ่มตี</ActionButton>}
+          action={
+            isAdmin && (
+              <ActionButton action={startSession.bind(null, s.id)} variant="primary" size="lg">
+                เริ่มตี
+              </ActionButton>
+            )
+          }
         />
       </Card>
     );
@@ -39,7 +45,11 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
           <div className="text-sm">
             <b>คอร์ทว่าง {st.freeCourts.length}</b> <span className="text-muted">· รอคิว {st.queue.length} คน</span>
           </div>
-          <ActionButton action={fillCourts.bind(null, s.id, undefined)} variant="primary" className={st.freeCourts.length && st.queue.length >= 4 ? "" : "opacity-50"}>
+          <ActionButton
+            action={fillCourts.bind(null, s.id, undefined)}
+            variant="primary"
+            className={st.freeCourts.length && st.queue.length >= 4 ? "" : "opacity-50"}
+          >
             จัดคู่ลงคอร์ทว่าง
           </ActionButton>
         </div>
@@ -61,9 +71,15 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
                 <div className="relative grid min-h-28 grid-cols-2 rounded-sm border-2 border-court-line bg-court text-white">
                   <div className="pointer-events-none absolute inset-x-2 inset-y-2.5 border border-court-line/50" />
                   {[a, b].map((team, i) => (
-                    <div key={i} className={`relative flex flex-col items-center justify-center gap-1.5 p-3 ${i ? "border-l-[3px] border-dashed border-court-line" : ""}`}>
+                    <div
+                      key={i}
+                      className={`relative flex flex-col items-center justify-center gap-1.5 p-3 ${i ? "border-l-[3px] border-dashed border-court-line" : ""}`}
+                    >
                       {team.map((id) => (
-                        <span key={id} className="flex max-w-full items-center gap-1 truncate rounded bg-black/20 px-2 py-0.5 font-display font-semibold">
+                        <span
+                          key={id}
+                          className="flex max-w-full items-center gap-1 truncate rounded bg-black/20 px-2 py-0.5 font-display font-semibold"
+                        >
                           {name(id)}
                           <span className="text-[11px] font-medium opacity-80">{member.get(id) && levelCode(member.get(id)!.level)}</span>
                         </span>
@@ -79,10 +95,29 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
 
               {isAdmin && s.status === "LIVE" && m && (
                 <div className="flex flex-wrap gap-2">
-                  <Dialog key={m.id} trigger="จบเกม" variant="primary" triggerClassName="flex-1" title={`จบเกม คอร์ท ${court.name}`} description={`เล่นไป ${minutesSince(m.startedAt)} นาที`}>
-                    <ResultForm action={finishMatch.bind(null, m.id)} teamA={pair(a)} teamB={pair(b)} submitLabel="บันทึก แล้วจัดคู่ถัดไป" />
+                  <Dialog
+                    key={m.id}
+                    trigger="จบเกม"
+                    variant="primary"
+                    triggerClassName="flex-1"
+                    title={`จบเกม คอร์ท ${court.name}`}
+                    description={`เล่นไป ${minutesSince(m.startedAt)} นาที`}
+                  >
+                    <ResultForm
+                      action={finishMatch.bind(null, m.id)}
+                      teamA={pair(a)}
+                      teamB={pair(b)}
+                      submitLabel="บันทึก แล้วจัดคู่ถัดไป"
+                    />
                   </Dialog>
-                  <Dialog key={`sub-${m.id}`} trigger="เปลี่ยนตัว" title="เปลี่ยนตัว" description={st.queue[0] ? `${name(st.queue[0].id)} (หัวคิว) จะลงแทน แล้วคนที่ออกจะถูกตั้งเป็นพัก` : "ไม่มีคนรอคิวลงแทน"}>
+                  <Dialog
+                    key={`sub-${m.id}`}
+                    trigger="เปลี่ยนตัว"
+                    title="เปลี่ยนตัว"
+                    description={
+                      st.queue[0] ? `${name(st.queue[0].id)} (หัวคิว) จะลงแทน แล้วคนที่ออกจะถูกตั้งเป็นพัก` : "ไม่มีคนรอคิวลงแทน"
+                    }
+                  >
                     <div className="grid grid-cols-2 gap-2">
                       {[...a, ...b].map((id) => (
                         <ActionButton key={id} action={substitutePlayer.bind(null, m.id, id)} closeDialog>
@@ -91,7 +126,9 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
                       ))}
                     </div>
                   </Dialog>
-                  <ActionButton action={cancelMatch.bind(null, m.id)} variant="ghost" confirm="ยกเลิกเกม (ไม่นับ)">ยกเลิก</ActionButton>
+                  <ActionButton action={cancelMatch.bind(null, m.id)} variant="ghost" confirm="ยกเลิกเกม (ไม่นับ)">
+                    ยกเลิก
+                  </ActionButton>
                 </div>
               )}
               {isAdmin && s.status === "LIVE" && !m && (
@@ -122,7 +159,9 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
                   <li key={q.id} className="flex items-center gap-3 px-5 py-2.5">
                     <span className="num w-6 text-right text-muted">{i + 1}</span>
                     <span className="flex-1 font-medium">{mem.nickname}</span>
-                    <span className="text-xs text-muted">รอ {minutesSince(new Date(q.queuedAt))} นาที · {q.games} เกม</span>
+                    <span className="text-xs text-muted">
+                      รอ {minutesSince(new Date(q.queuedAt))} นาที · {q.games} เกม
+                    </span>
                     <LevelBadge level={mem.level} />
                   </li>
                 );
@@ -135,7 +174,9 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
             <CardBody className="flex flex-wrap items-center gap-2 border-t border-line">
               <span className="text-xs font-semibold text-muted">พัก / กลับแล้ว</span>
               {resting.map((p) => (
-                <Badge key={p.id} tone={p.status === "RESTING" ? "warn" : "outline"}>{p.member.nickname}</Badge>
+                <Badge key={p.id} tone={p.status === "RESTING" ? "warn" : "outline"}>
+                  {p.member.nickname}
+                </Badge>
               ))}
             </CardBody>
           )}
@@ -168,15 +209,29 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                         <span>คอร์ท {court?.name}</span>·<span>{m.shuttles} ลูก</span>
-                        {m.endedAt && <>·<span>{thaiDateTime(m.endedAt).split(" ").pop()}</span></>}
+                        {m.endedAt && (
+                          <>
+                            ·<span>{thaiTime(m.endedAt)}</span>
+                          </>
+                        )}
                         {!m.winner && <Badge tone="warn">ยังไม่บันทึกผล</Badge>}
                         {m.winner && !scored && <Badge>ไม่มีแต้ม</Badge>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {scored && <span className="num text-base font-bold">{m.scoreA}–{m.scoreB}</span>}
+                      {scored && (
+                        <span className="num text-base font-bold">
+                          {m.scoreA}–{m.scoreB}
+                        </span>
+                      )}
                       {isAdmin && (
-                        <Dialog trigger={m.winner ? "แก้" : "ใส่ผล"} size="sm" variant={m.winner ? "ghost" : "secondary"} title={`แก้ผลเกม คอร์ท ${court?.name}`} description={pair(ta) + " vs " + pair(tb)}>
+                        <Dialog
+                          trigger={m.winner ? "แก้" : "ใส่ผล"}
+                          size="sm"
+                          variant={m.winner ? "ghost" : "secondary"}
+                          title={`แก้ผลเกม คอร์ท ${court?.name}`}
+                          description={pair(ta) + " vs " + pair(tb)}
+                        >
                           <ResultForm
                             action={updateMatchResult.bind(null, m.id)}
                             teamA={pair(ta)}
@@ -200,4 +255,3 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
     </div>
   );
 }
-

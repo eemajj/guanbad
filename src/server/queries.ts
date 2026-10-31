@@ -13,7 +13,9 @@ export async function loadResults(opts: { memberIds?: string[]; from?: Date; to?
     where: {
       status: "DONE",
       ...(opts.memberIds ? { players: { some: { memberId: { in: opts.memberIds } } } } : {}),
-      ...(opts.from || opts.to ? { session: { date: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lt: opts.to } : {}) } } } : {}),
+      ...(opts.from || opts.to
+        ? { session: { date: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lt: opts.to } : {}) } } }
+        : {}),
     },
     select: { winner: true, scoreA: true, scoreB: true, sessionId: true, players: { select: { memberId: true, team: true } } },
   });
@@ -58,7 +60,11 @@ export async function upcomingSessions(memberId?: string) {
     where: { status: { not: "CLOSED" }, OR: [{ date: { gte: today } }, { status: "LIVE" }] },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
     take: 6,
-    include: { courts: true, _count: { select: { participants: true } }, participants: memberId ? { where: { memberId }, select: { id: true } } : false },
+    include: {
+      courts: true,
+      _count: { select: { participants: true } },
+      participants: memberId ? { where: { memberId }, select: { id: true } } : false,
+    },
   });
 }
 
@@ -80,7 +86,11 @@ export async function financeMonth(ym: string) {
       orderBy: { date: "asc" },
       include: { charges: true, expenses: true, _count: { select: { participants: true } } },
     }),
-    prisma.expense.findMany({ where: { spentAt: { gte: from, lt: to } }, include: { session: { select: { venue: true } } }, orderBy: { spentAt: "desc" } }),
+    prisma.expense.findMany({
+      where: { spentAt: { gte: from, lt: to } },
+      include: { session: { select: { venue: true } } },
+      orderBy: { spentAt: "desc" },
+    }),
   ]);
 
   const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0);

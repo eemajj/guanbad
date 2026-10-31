@@ -16,7 +16,9 @@ export default async function WelcomePage() {
         <h1 className="text-2xl font-bold">ยินดีต้อนรับเข้าก๊วน</h1>
         <p className="mt-1 text-sm text-muted">บอกชื่อเล่นและระดับมือของคุณ ใช้สำหรับลงชื่อและจัดคู่ หัวก๊วนปรับระดับให้ทีหลังได้</p>
       </div>
-      <p className="rounded-lg bg-accent-soft p-3 text-sm">ถ้าหัวก๊วนเคยเพิ่มชื่อคุณไว้แล้ว ให้ขอ “ลิงก์ผูกบัญชี” จากหัวก๊วนแทน ประวัติการเล่นและยอดค้างจะได้อยู่ที่เดียวกัน</p>
+      <p className="rounded-lg bg-accent-soft p-3 text-sm">
+        ถ้าหัวก๊วนเคยเพิ่มชื่อคุณไว้แล้ว ให้ขอ “ลิงก์ผูกบัญชี” จากหัวก๊วนแทน ประวัติการเล่นและยอดค้างจะได้อยู่ที่เดียวกัน
+      </p>
       <ActionForm action={createMyProfile} className="flex flex-col gap-4">
         <Field label="ชื่อเล่น (ชื่อที่เพื่อนในก๊วนเรียก)">
           <Input name="nickname" defaultValue={viewer.user.name} required maxLength={30} />

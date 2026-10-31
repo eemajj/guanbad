@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck · lint · format · unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx prisma validate
+        env: { DATABASE_URL: "postgresql://x:x@localhost:5432/x" }
+      - run: npm run check
+
+  integration-e2e:
+    name: Integration + E2E (PostgreSQL)
+    runs-on: ubuntu-latest
+    needs: check
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: guan, POSTGRES_PASSWORD: guan, POSTGRES_DB: guan }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U guan" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Each suite creates its own new database next to these (names must contain test / e2e).
+      TEST_DATABASE_URL: postgresql://guan:guan@localhost:5432/guan_test
+      E2E_DATABASE_URL: postgresql://guan:guan@localhost:5432/guan_e2e
+      DATABASE_URL: postgresql://guan:guan@localhost:5432/guan
+      AUTH_SECRET: ci-only-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Create base databases
+        run: |
+          PGPASSWORD=guan psql -h localhost -U guan -d guan -c "CREATE DATABASE guan_test" -c "CREATE DATABASE guan_e2e"
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report, retention-days: 7 }

@@ -21,7 +21,10 @@ export default async function SettingsPage() {
     <>
       <PageHeader title="ตั้งค่าก๊วน" />
       <Card>
-        <CardHeader title="ข้อมูลก๊วนและการรับเงิน" description="ใส่พร้อมเพย์ แล้วทุกบิลจะมี QR ที่ใส่ยอดของแต่ละคนไว้ให้ สมาชิกสแกนจ่ายได้ทันที" />
+        <CardHeader
+          title="ข้อมูลก๊วนและการรับเงิน"
+          description="ใส่พร้อมเพย์ แล้วทุกบิลจะมี QR ที่ใส่ยอดของแต่ละคนไว้ให้ สมาชิกสแกนจ่ายได้ทันที"
+        />
         <CardBody className="grid gap-6 lg:grid-cols-[1fr_auto]">
           <ActionForm action={updateSettings} className="flex flex-col gap-4">
             <Field label="ชื่อก๊วน">
@@ -33,7 +36,9 @@ export default async function SettingsPage() {
             <Field label="ชื่อบัญชี" hint="แสดงใต้ QR ให้สมาชิกเห็นว่าโอนให้ใคร">
               <Input name="accountName" maxLength={80} defaultValue={s.accountName ?? ""} />
             </Field>
-            <div><SubmitButton>บันทึก</SubmitButton></div>
+            <div>
+              <SubmitButton>บันทึก</SubmitButton>
+            </div>
           </ActionForm>
           {sample && (
             <div className="flex flex-col items-center gap-2 self-start rounded-xl bg-white p-4 text-[#0b1a13]">
@@ -48,7 +53,9 @@ export default async function SettingsPage() {
         <CardHeader title="หัวก๊วน" description="หัวก๊วนจัดการได้ทุกอย่าง ตั้งหัวก๊วนร่วมได้จากหน้าสมาชิก (ต้องผูกบัญชี LINE แล้ว)" />
         <ul className="divide-y divide-line">
           {admins.map((a) => (
-            <li key={a.id} className="px-5 py-2.5 text-sm"><b>{a.member?.nickname ?? a.name}</b> <span className="text-muted">· LINE: {a.name}</span></li>
+            <li key={a.id} className="px-5 py-2.5 text-sm">
+              <b>{a.member?.nickname ?? a.name}</b> <span className="text-muted">· LINE: {a.name}</span>
+            </li>
           ))}
         </ul>
       </Card>
@@ -59,7 +66,10 @@ export default async function SettingsPage() {
           {LEVEL_ORDER.map((l) => (
             <li key={l} className="grid grid-cols-[48px_1fr] gap-3 px-5 py-2.5 text-sm">
               <span className="font-display text-base font-bold text-brand">{LEVELS[l].code}</span>
-              <span><b>{LEVELS[l].name}</b><span className="block text-muted">{LEVELS[l].description}</span></span>
+              <span>
+                <b>{LEVELS[l].name}</b>
+                <span className="block text-muted">{LEVELS[l].description}</span>
+              </span>
             </li>
           ))}
         </ul>

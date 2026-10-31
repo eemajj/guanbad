@@ -25,7 +25,13 @@ export function SessionForm({
         <CardHeader title="สนามและเวลา" />
         <CardBody className="grid gap-4 sm:grid-cols-2">
           <Field label="สนาม" className="sm:col-span-2">
-            <Input name="venue" required maxLength={80} placeholder="เช่น สนามแบด ส.บุญมี" defaultValue={s?.venue ?? defaults.venue ?? ""} />
+            <Input
+              name="venue"
+              required
+              maxLength={80}
+              placeholder="เช่น สนามแบด ส.บุญมี"
+              defaultValue={s?.venue ?? defaults.venue ?? ""}
+            />
           </Field>
           <Field label="วันที่">
             <Input name="date" type="date" required defaultValue={s ? isoFromDate(s.date) : todayISO()} />
@@ -48,10 +54,26 @@ export function SessionForm({
         <CardHeader title="ค่าใช้จ่าย" description="ค่าลูกคิดตามจริง: ทุกเกมกดใส่ว่าใช้กี่ลูก แล้วหาร 4 คนในเกมนั้น" />
         <CardBody className="grid gap-4 sm:grid-cols-2">
           <Field label="ค่าคอร์ท ต่อคอร์ทต่อชั่วโมง (บาท)">
-            <Input name="courtRate" type="number" inputMode="decimal" min={0} step="any" required defaultValue={(s?.courtRate ?? defaults.courtRate) / 100} />
+            <Input
+              name="courtRate"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              required
+              defaultValue={(s?.courtRate ?? defaults.courtRate) / 100}
+            />
           </Field>
           <Field label="ราคาลูก ต่อลูก (บาท)">
-            <Input name="shuttlePrice" type="number" inputMode="decimal" min={0} step="any" required defaultValue={(s?.shuttlePrice ?? defaults.shuttlePrice) / 100} />
+            <Input
+              name="shuttlePrice"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              required
+              defaultValue={(s?.shuttlePrice ?? defaults.shuttlePrice) / 100}
+            />
           </Field>
           <Field label="แบ่งค่าคอร์ทยังไง">
             <Select name="feeMode" defaultValue={s?.feeMode ?? "SPLIT"}>
@@ -72,7 +94,12 @@ export function SessionForm({
             <Input name="maxPlayers" type="number" min={4} max={200} defaultValue={s?.maxPlayers ?? ""} />
           </Field>
           <div className="flex items-end">
-            <Checkbox name="selfSignup" defaultChecked={s?.selfSignup ?? true} label="ให้สมาชิกลงชื่อเองได้" hint="ปิดไว้ถ้าหัวก๊วนจะเพิ่มชื่อให้ทุกคนเอง" />
+            <Checkbox
+              name="selfSignup"
+              defaultChecked={s?.selfSignup ?? true}
+              label="ให้สมาชิกลงชื่อเองได้"
+              hint="ปิดไว้ถ้าหัวก๊วนจะเพิ่มชื่อให้ทุกคนเอง"
+            />
           </div>
           <Field label="หมายเหตุถึงสมาชิก (ไม่บังคับ)" className="sm:col-span-2">
             <Textarea name="note" maxLength={500} placeholder="เช่น ใส่รองเท้าพื้นยาง จอดรถด้านหลังสนาม" defaultValue={s?.note ?? ""} />

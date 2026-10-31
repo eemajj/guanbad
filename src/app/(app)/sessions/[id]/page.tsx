@@ -22,7 +22,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: s?.venue ?? "รอบตี" };
 }
 
-export default async function SessionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function SessionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const viewer = await requireMemberPage();
   const { id } = await params;
   const s = await loadSession(id);
@@ -34,14 +40,20 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
   const myId = viewer.member?.id;
 
   const roster = viewer.isAdmin
-    ? await prisma.member.findMany({ where: { active: true }, select: { id: true, nickname: true, level: true }, orderBy: { nickname: "asc" } })
+    ? await prisma.member.findMany({
+        where: { active: true },
+        select: { id: true, nickname: true, level: true },
+        orderBy: { nickname: "asc" },
+      })
     : [];
 
   return (
     <>
       {s.status === "LIVE" && <AutoRefresh />}
       <header className="flex flex-col gap-3">
-        <Link href="/sessions" className="text-[13px] text-muted hover:text-ink">← รอบตีทั้งหมด</Link>
+        <Link href="/sessions" className="text-[13px] text-muted hover:text-ink">
+          ← รอบตีทั้งหมด
+        </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -85,13 +97,19 @@ function AdminActions({ s }: { s: SessionDetail }) {
     <div className="flex flex-wrap gap-2">
       {s.status !== "CLOSED" && <LinkButton href={`/sessions/${s.id}/edit`}>แก้ไขรอบ</LinkButton>}
       {s.status === "OPEN" && (
-        <ActionButton action={startSession.bind(null, s.id)} variant="primary">เริ่มตี</ActionButton>
+        <ActionButton action={startSession.bind(null, s.id)} variant="primary">
+          เริ่มตี
+        </ActionButton>
       )}
       {s.status === "LIVE" && (
-        <ActionButton action={closeSession.bind(null, s.id)} variant="accent" confirm="ยืนยันจบรอบและออกบิล">จบรอบ & ออกบิล</ActionButton>
+        <ActionButton action={closeSession.bind(null, s.id)} variant="accent" confirm="ยืนยันจบรอบและออกบิล">
+          จบรอบ & ออกบิล
+        </ActionButton>
       )}
       {s.status === "CLOSED" && (
-        <ActionButton action={reopenSession.bind(null, s.id)} confirm="ยืนยันเปิดรอบอีกครั้ง">เปิดรอบอีกครั้ง</ActionButton>
+        <ActionButton action={reopenSession.bind(null, s.id)} confirm="ยืนยันเปิดรอบอีกครั้ง">
+          เปิดรอบอีกครั้ง
+        </ActionButton>
       )}
     </div>
   );
@@ -110,10 +128,18 @@ function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: SessionSta
         <div>
           <div className="font-semibold">คุณยังไม่ได้ลงชื่อรอบนี้</div>
           <div className="text-sm text-muted">
-            {!s.selfSignup ? "รอบนี้หัวก๊วนเป็นคนเพิ่มชื่อให้" : full ? `เต็มแล้ว (${s.maxPlayers} คน)` : `ลงชื่อแล้ว ${s.participants.length} คน`}
+            {!s.selfSignup
+              ? "รอบนี้หัวก๊วนเป็นคนเพิ่มชื่อให้"
+              : full
+                ? `เต็มแล้ว (${s.maxPlayers} คน)`
+                : `ลงชื่อแล้ว ${s.participants.length} คน`}
           </div>
         </div>
-        {s.selfSignup && !full && <ActionButton action={joinSession.bind(null, s.id)} variant="primary" size="lg">ลงชื่อ</ActionButton>}
+        {s.selfSignup && !full && (
+          <ActionButton action={joinSession.bind(null, s.id)} variant="primary" size="lg">
+            ลงชื่อ
+          </ActionButton>
+        )}
       </div>
     );
   }
@@ -125,8 +151,10 @@ function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: SessionSta
 
   let headline: string;
   let sub = `เล่นแล้ว ${stat.games} เกม · ชนะ ${stat.wins} แพ้ ${stat.losses}`;
-  if (s.status === "OPEN") { headline = "ลงชื่อแล้ว ✓"; sub = `เจอกัน ${s.startTime} น.`; }
-  else if (s.status === "CLOSED") headline = charge ? `ยอดของคุณ ${baht(charge.total)}` : "จบรอบแล้ว";
+  if (s.status === "OPEN") {
+    headline = "ลงชื่อแล้ว ✓";
+    sub = `เจอกัน ${s.startTime} น.`;
+  } else if (s.status === "CLOSED") headline = charge ? `ยอดของคุณ ${baht(charge.total)}` : "จบรอบแล้ว";
   else if (playingCourt) headline = `กำลังเล่น คอร์ท ${playingCourt.name}`;
   else if (me.status === "RESTING") headline = "พักอยู่";
   else if (me.status === "LEFT") headline = "กลับบ้านแล้ว";
@@ -142,16 +170,24 @@ function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: SessionSta
       </div>
       <div className="flex flex-wrap gap-2">
         {s.status === "OPEN" && (
-          <ActionButton action={removeParticipant.bind(null, me.id)} variant="ghost" confirm="ยืนยันถอนชื่อ">ถอนชื่อ</ActionButton>
+          <ActionButton action={removeParticipant.bind(null, me.id)} variant="ghost" confirm="ยืนยันถอนชื่อ">
+            ถอนชื่อ
+          </ActionButton>
         )}
         {s.status === "LIVE" &&
           (me.status === "ACTIVE" ? (
-            <ActionButton action={setParticipantStatus.bind(null, me.id, "RESTING")} size="lg">ขอพัก</ActionButton>
+            <ActionButton action={setParticipantStatus.bind(null, me.id, "RESTING")} size="lg">
+              ขอพัก
+            </ActionButton>
           ) : (
-            <ActionButton action={setParticipantStatus.bind(null, me.id, "ACTIVE")} variant="primary" size="lg">กลับมาเล่น</ActionButton>
+            <ActionButton action={setParticipantStatus.bind(null, me.id, "ACTIVE")} variant="primary" size="lg">
+              กลับมาเล่น
+            </ActionButton>
           ))}
         {s.status === "CLOSED" && charge && (charge.status === "UNPAID" || charge.status === "REPORTED") && (
-          <Link href={`/pay/${charge.id}`} className={buttonClass("accent", "lg")}>{charge.status === "REPORTED" ? "ดูการแจ้งโอน" : "จ่ายเงิน"}</Link>
+          <Link href={`/pay/${charge.id}`} className={buttonClass("accent", "lg")}>
+            {charge.status === "REPORTED" ? "ดูการแจ้งโอน" : "จ่ายเงิน"}
+          </Link>
         )}
       </div>
     </div>

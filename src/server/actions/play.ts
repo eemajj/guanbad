@@ -29,7 +29,13 @@ export async function addParticipants(sessionId: string, memberIds: string[]) {
       const now = Date.now();
       // Stagger queue times so the order they were picked is kept.
       await tx.participant.createMany({
-        data: fresh.map((memberId, i) => ({ sessionId, memberId, source: "ADMIN" as const, joinedAt: new Date(now + i), queuedAt: new Date(now + i) })),
+        data: fresh.map((memberId, i) => ({
+          sessionId,
+          memberId,
+          source: "ADMIN" as const,
+          joinedAt: new Date(now + i),
+          queuedAt: new Date(now + i),
+        })),
       });
       if (s.status === "LIVE") await assignCourts(tx, sessionId);
       return fresh.length;
@@ -88,7 +94,9 @@ export async function removeParticipant(participantId: string) {
     if (!viewer.isAdmin && p.memberId !== viewer.member?.id) throw new ActionError("ทำรายการนี้ไม่ได้");
     await prisma.$transaction(async (tx) => {
       await lockSession(tx, p.sessionId);
-      const played = await tx.matchPlayer.count({ where: { memberId: p.memberId, match: { sessionId: p.sessionId, status: { not: "CANCELLED" } } } });
+      const played = await tx.matchPlayer.count({
+        where: { memberId: p.memberId, match: { sessionId: p.sessionId, status: { not: "CANCELLED" } } },
+      });
       if (played) throw new ActionError("ลงเล่นไปแล้ว ใช้ “กลับบ้านแล้ว” แทน");
       const charge = await tx.charge.findUnique({ where: { sessionId_memberId: { sessionId: p.sessionId, memberId: p.memberId } } });
       if (charge) throw new ActionError("ออกบิลแล้ว ลบไม่ได้");
@@ -116,7 +124,9 @@ export async function setParticipantStatus(participantId: string, status: Partic
       if (status === "ACTIVE") await assignCourts(tx, p.sessionId);
     });
     refresh(p.sessionId);
-    const label = { ACTIVE: "กลับเข้าคิวแล้ว", RESTING: "พักแล้ว (ถ้ากำลังเล่นอยู่ จะพักหลังจบเกมนี้)", LEFT: "บันทึกว่ากลับบ้านแล้ว" }[status];
+    const label = { ACTIVE: "กลับเข้าคิวแล้ว", RESTING: "พักแล้ว (ถ้ากำลังเล่นอยู่ จะพักหลังจบเกมนี้)", LEFT: "บันทึกว่ากลับบ้านแล้ว" }[
+      status
+    ];
     return { ok: true, message: `${p.member.nickname} ${label}` };
   });
 }
@@ -136,7 +146,10 @@ export async function fillCourts(sessionId: string, courtId?: string) {
   });
 }
 
-const optionalInt = z.preprocess((v) => (v === "" || v == null ? null : v), z.coerce.number({ invalid_type_error: "แต้มต้องเป็นตัวเลข" }).nullable());
+const optionalInt = z.preprocess(
+  (v) => (v === "" || v == null ? null : v),
+  z.coerce.number({ invalid_type_error: "แต้มต้องเป็นตัวเลข" }).nullable(),
+);
 const resultSchema = z.object({
   winner: z.enum(["A", "B", ""]).transform((v) => (v === "" ? null : v)),
   scoreA: optionalInt,
@@ -163,7 +176,10 @@ export async function finishMatch(matchId: string, form: FormData) {
       const fresh = await tx.match.findUnique({ where: { id: matchId } });
       if (fresh?.status !== "PLAYING") throw new ActionError("เกมนี้บันทึกไปแล้ว");
       const endedAt = new Date();
-      await tx.match.update({ where: { id: matchId }, data: { status: "DONE", winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles, endedAt } });
+      await tx.match.update({
+        where: { id: matchId },
+        data: { status: "DONE", winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles, endedAt },
+      });
       // The four players go to the back of the queue.
       await tx.participant.updateMany({
         where: { sessionId: m.sessionId, memberId: { in: m.players.map((p) => p.memberId) } },
@@ -182,13 +198,22 @@ export async function updateMatchResult(matchId: string, form: FormData) {
   return run(async () => {
     await requireAdminAction();
     const d = parseResult(form);
-    const m = await prisma.match.findUnique({ where: { id: matchId }, include: { session: { select: { status: true } } } });
-    if (!m || m.status !== "DONE") throw new ActionError("แก้ได้เฉพาะเกมที่จบแล้ว");
-    if (m.session.status === "CLOSED" && d.shuttles !== m.shuttles) {
-      throw new ActionError("ออกบิลแล้ว แก้จำนวนลูกไม่ได้ (แก้ได้แค่ผลการแข่ง) ถ้าจำเป็นให้เปิดรอบอีกครั้งก่อน");
-    }
-    await prisma.match.update({ where: { id: matchId }, data: { winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles } });
-    refresh(m.sessionId);
+    const sessionId = await prisma.$transaction(async (tx) => {
+      const found = await tx.match.findUnique({ where: { id: matchId }, select: { sessionId: true } });
+      if (!found) throw new ActionError("ไม่พบเกมนี้");
+      await lockSession(tx, found.sessionId);
+      const m = await tx.match.findUnique({ where: { id: matchId }, include: { session: { select: { status: true } } } });
+      if (!m || m.status !== "DONE") throw new ActionError("แก้ได้เฉพาะเกมที่จบแล้ว");
+      if (m.session.status === "CLOSED" && d.shuttles !== m.shuttles) {
+        throw new ActionError("ออกบิลแล้ว แก้จำนวนลูกไม่ได้ (แก้ได้แค่ผลการแข่ง) ถ้าจำเป็นให้เปิดรอบอีกครั้งก่อน");
+      }
+      await tx.match.update({
+        where: { id: matchId },
+        data: { winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles },
+      });
+      return m.sessionId;
+    });
+    refresh(sessionId);
     revalidatePath("/stats");
     return { ok: true, message: d.winner ? "บันทึกผลแล้ว" : "บันทึกแล้ว (ยังไม่มีผล)" };
   });
@@ -197,10 +222,18 @@ export async function updateMatchResult(matchId: string, form: FormData) {
 export async function cancelMatch(matchId: string) {
   return run(async () => {
     await requireAdminAction();
-    const m = await prisma.match.findUnique({ where: { id: matchId } });
-    if (!m) throw new ActionError("ไม่พบเกมนี้");
-    await prisma.match.update({ where: { id: matchId }, data: { status: "CANCELLED", endedAt: new Date() } });
-    refresh(m.sessionId);
+    const sessionId = await prisma.$transaction(async (tx) => {
+      const found = await tx.match.findUnique({ where: { id: matchId }, select: { sessionId: true } });
+      if (!found) throw new ActionError("ไม่พบเกมนี้");
+      await lockSession(tx, found.sessionId);
+      const m = await tx.match.findUnique({ where: { id: matchId }, include: { session: { select: { status: true } } } });
+      // Only a game still on court can be cancelled; finished games affect bills and stats.
+      if (m?.status !== "PLAYING") throw new ActionError("ยกเลิกได้เฉพาะเกมที่กำลังเล่นอยู่ ถ้าผลผิดให้ใช้ “แก้ผล”");
+      if (m.session.status !== "LIVE") throw new ActionError("รอบนี้ไม่ได้กำลังตีอยู่");
+      await tx.match.update({ where: { id: matchId }, data: { status: "CANCELLED", endedAt: new Date() } });
+      return m.sessionId;
+    });
+    refresh(sessionId);
     return { ok: true, message: "ยกเลิกเกมแล้ว (ไม่นับ ไม่คิดค่าลูก)" };
   });
 }

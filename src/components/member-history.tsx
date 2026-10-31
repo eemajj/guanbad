@@ -28,7 +28,10 @@ export async function MemberHistory({ memberId, payLinks }: { memberId: string; 
 
   const partners = [...partnerRecords(results, memberId).entries()].sort((a, b) => b[1].games - a[1].games).slice(0, 8);
   const partnerNames = new Map(
-    (await prisma.member.findMany({ where: { id: { in: partners.map(([id]) => id) } }, select: { id: true, nickname: true } })).map((m) => [m.id, m.nickname]),
+    (await prisma.member.findMany({ where: { id: { in: partners.map(([id]) => id) } }, select: { id: true, nickname: true } })).map((m) => [
+      m.id,
+      m.nickname,
+    ]),
   );
   const decided = stats.wins + stats.losses;
 
@@ -37,12 +40,17 @@ export async function MemberHistory({ memberId, payLinks }: { memberId: string; 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="มาตี / เล่น" value={`${stats.sessions} / ${stats.games}`} sub="รอบ / เกม" />
         <Stat label="ชนะ–แพ้" value={`${stats.wins}–${stats.losses}`} sub={`อัตราชนะ ${formatRate(winRate(stats))}`} />
-        <Stat label="แต้มได้–เสีย เฉลี่ย" value={formatDiff(avgPointDiff(stats))} sub={stats.scoredGames ? `จาก ${stats.scoredGames} เกมที่มีแต้ม` : "ยังไม่มีเกมที่บันทึกแต้ม"} />
+        <Stat
+          label="แต้มได้–เสีย เฉลี่ย"
+          value={formatDiff(avgPointDiff(stats))}
+          sub={stats.scoredGames ? `จาก ${stats.scoredGames} เกมที่มีแต้ม` : "ยังไม่มีเกมที่บันทึกแต้ม"}
+        />
         <Stat label="ยอดค้าง" value={baht(stats.outstanding)} tone={stats.outstanding ? "danger" : undefined} />
       </section>
       {stats.games > 0 && stats.unrecorded > 0 && (
         <p className="-mt-3 text-xs text-muted">
-          สถิติชนะ/แพ้คิดจาก {decided} จาก {stats.games} เกม ({formatRate(coverage(stats))}) อีก {stats.unrecorded} เกมไม่ได้บันทึกผล จึงไม่นับ
+          สถิติชนะ/แพ้คิดจาก {decided} จาก {stats.games} เกม ({formatRate(coverage(stats))}) อีก {stats.unrecorded} เกมไม่ได้บันทึกผล
+          จึงไม่นับ
         </p>
       )}
 
@@ -55,7 +63,11 @@ export async function MemberHistory({ memberId, payLinks }: { memberId: string; 
                 <li key={id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
                   <span className="font-medium">{partnerNames.get(id) ?? "?"}</span>
                   <span className="text-muted">
-                    {r.games} เกม · <span className="num text-ink">{r.wins}–{r.losses}</span> · {formatRate(r.wins + r.losses ? r.wins / (r.wins + r.losses) : null)}
+                    {r.games} เกม ·{" "}
+                    <span className="num text-ink">
+                      {r.wins}–{r.losses}
+                    </span>{" "}
+                    · {formatRate(r.wins + r.losses ? r.wins / (r.wins + r.losses) : null)}
                   </span>
                 </li>
               ))}
@@ -72,7 +84,10 @@ export async function MemberHistory({ memberId, payLinks }: { memberId: string; 
                 const rec = playerRecords(bySession.get(p.sessionId) ?? []).get(memberId);
                 return (
                   <li key={p.id}>
-                    <Link href={`/sessions/${p.sessionId}`} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm hover:bg-surface-2">
+                    <Link
+                      href={`/sessions/${p.sessionId}`}
+                      className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm hover:bg-surface-2"
+                    >
                       <div className="min-w-0">
                         <div className="truncate font-medium">{p.session.venue}</div>
                         <div className="text-xs text-muted">{thaiDate(p.session.date)}</div>
@@ -105,7 +120,9 @@ export async function MemberHistory({ memberId, payLinks }: { memberId: string; 
                   <ChargeStatusBadge status={c.status} />
                   <span className="num w-16 text-right font-bold">{baht(c.total)}</span>
                   {payLinks && (c.status === "UNPAID" || c.status === "REPORTED") ? (
-                    <Link href={`/pay/${c.id}`} className="text-xs font-semibold text-brand hover:underline">จ่าย</Link>
+                    <Link href={`/pay/${c.id}`} className="text-xs font-semibold text-brand hover:underline">
+                      จ่าย
+                    </Link>
                   ) : (
                     <span className="w-6" />
                   )}

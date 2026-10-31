@@ -11,7 +11,19 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty";
 import { Field, Input } from "@/components/ui/field";
 
-export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionDetail; st: SessionState; isAdmin: boolean; roster: Pick<Member, "id" | "nickname" | "level">[]; myMemberId?: string }) {
+export function PlayersTab({
+  s,
+  st,
+  isAdmin,
+  roster,
+  myMemberId,
+}: {
+  s: SessionDetail;
+  st: SessionState;
+  isAdmin: boolean;
+  roster: Pick<Member, "id" | "nickname" | "level">[];
+  myMemberId?: string;
+}) {
   const closed = s.status === "CLOSED";
   const queuePos = new Map(st.queue.map((q, i) => [q.id, i + 1]));
   const courtName = new Map(s.courts.map((c) => [c.id, c.name]));
@@ -44,7 +56,10 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
         }
       />
       {s.participants.length === 0 ? (
-        <EmptyState title="ยังไม่มีใครลงชื่อ" description={isAdmin ? "เพิ่มจากทะเบียน หรือส่งลิงก์หน้านี้ในกลุ่ม LINE ให้สมาชิกลงชื่อเอง" : "เป็นคนแรกได้เลย"} />
+        <EmptyState
+          title="ยังไม่มีใครลงชื่อ"
+          description={isAdmin ? "เพิ่มจากทะเบียน หรือส่งลิงก์หน้านี้ในกลุ่ม LINE ให้สมาชิกลงชื่อเอง" : "เป็นคนแรกได้เลย"}
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -55,7 +70,9 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
                 <th className="hidden px-2 py-2 font-semibold sm:table-cell">สถานะ</th>
                 <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">เกม</th>
                 <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">ชนะ–แพ้</th>
-                <th className="px-4 py-2 text-right font-semibold sm:px-5"><span className="sr-only">จัดการ</span></th>
+                <th className="px-4 py-2 text-right font-semibold sm:px-5">
+                  <span className="sr-only">จัดการ</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -74,29 +91,50 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
                         {p.source === "SELF" && <span className="text-xs text-muted">ลงชื่อเอง</span>}
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted sm:hidden">
-                        <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
+                        <ParticipantStatusBadge
+                          status={p.status}
+                          court={stat.playing ? courtName.get(stat.playing.courtId) : undefined}
+                          queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined}
+                        />
                         {stat.games} เกม · ชนะ {stat.wins} แพ้ {stat.losses}
                       </div>
                     </td>
                     <td className="hidden px-2 py-2.5 sm:table-cell">
-                      <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
+                      <ParticipantStatusBadge
+                        status={p.status}
+                        court={stat.playing ? courtName.get(stat.playing.courtId) : undefined}
+                        queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined}
+                      />
                     </td>
                     <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.games}</td>
-                    <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.wins}–{stat.losses}</td>
+                    <td className="num hidden px-2 py-2.5 text-right sm:table-cell">
+                      {stat.wins}–{stat.losses}
+                    </td>
                     <td className="px-4 py-2.5 sm:px-5">
                       {canEdit && (
                         <div className="flex flex-wrap justify-end gap-1">
                           {s.status === "LIVE" &&
                             (p.status === "ACTIVE" ? (
-                              <ActionButton action={setParticipantStatus.bind(null, p.id, "RESTING")} size="sm">พัก</ActionButton>
+                              <ActionButton action={setParticipantStatus.bind(null, p.id, "RESTING")} size="sm">
+                                พัก
+                              </ActionButton>
                             ) : (
-                              <ActionButton action={setParticipantStatus.bind(null, p.id, "ACTIVE")} size="sm" variant="primary">กลับมาเล่น</ActionButton>
+                              <ActionButton action={setParticipantStatus.bind(null, p.id, "ACTIVE")} size="sm" variant="primary">
+                                กลับมาเล่น
+                              </ActionButton>
                             ))}
                           {s.status === "LIVE" && p.status !== "LEFT" && stat.games > 0 && (
-                            <ActionButton action={setParticipantStatus.bind(null, p.id, "LEFT")} size="sm" variant="ghost">กลับบ้าน</ActionButton>
+                            <ActionButton action={setParticipantStatus.bind(null, p.id, "LEFT")} size="sm" variant="ghost">
+                              กลับบ้าน
+                            </ActionButton>
                           )}
                           {stat.games === 0 && !stat.playing && (
-                            <ActionButton action={removeParticipant.bind(null, p.id)} size="sm" variant="ghost" confirm={mine && !isAdmin ? "ยืนยันถอนชื่อ" : "ยืนยันลบ"}>
+                            <ActionButton
+                              action={removeParticipant.bind(null, p.id)}
+                              size="sm"
+                              variant="ghost"
+                              confirm={mine && !isAdmin ? "ยืนยันถอนชื่อ" : "ยืนยันลบ"}
+                            >
                               {mine && !isAdmin ? "ถอนชื่อ" : "ลบ"}
                             </ActionButton>
                           )}

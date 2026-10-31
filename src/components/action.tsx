@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
+import { createContext, useContext, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { ActionResult } from "@/lib/action";
 import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
@@ -22,7 +21,15 @@ function useResult() {
   };
 }
 
-/** A form that posts to a server action and shows the result as a toast. */
+const PendingContext = createContext(false);
+
+/**
+ * A form that posts to a server action and shows the result as a toast.
+ *
+ * Submission is handled with onSubmit (not the `action` prop) on purpose: React resets a form
+ * automatically when an `action` transition ends, which can wipe text the user already typed
+ * for the next entry. Here fields are only cleared when `resetOnSuccess` is set.
+ */
 export function ActionForm({
   action,
   children,
@@ -39,26 +46,44 @@ export function ActionForm({
 }) {
   const handle = useResult();
   const close = useCloseDialog();
-  const ref = useRef<HTMLFormElement>(null);
+  const [pending, start] = useTransition();
   return (
     <form
-      ref={ref}
       className={className}
-      action={async (fd) => {
-        const r = await action(fd);
-        handle(r, () => {
-          if (resetOnSuccess) ref.current?.reset();
-          if (closeDialog) close();
+      aria-busy={pending}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (pending) return;
+        const form = e.currentTarget;
+        const data = new FormData(form);
+        start(async () => {
+          const r = await action(data);
+          handle(r, () => {
+            if (resetOnSuccess) form.reset();
+            if (closeDialog) close();
+          });
         });
       }}
     >
-      {children}
+      <PendingContext.Provider value={pending}>{children}</PendingContext.Provider>
     </form>
   );
 }
 
-export function SubmitButton({ children, variant = "primary", size, className, pendingText }: { children: ReactNode; variant?: ButtonVariant; size?: ButtonSize; className?: string; pendingText?: string }) {
-  const { pending } = useFormStatus();
+export function SubmitButton({
+  children,
+  variant = "primary",
+  size,
+  className,
+  pendingText,
+}: {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+  pendingText?: string;
+}) {
+  const pending = useContext(PendingContext);
   return (
     <Button type="submit" variant={variant} size={size} className={className} disabled={pending} aria-busy={pending}>
       {pending ? (pendingText ?? "กำลังบันทึก…") : children}

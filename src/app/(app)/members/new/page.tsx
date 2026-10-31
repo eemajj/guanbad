@@ -10,8 +10,16 @@ export default async function NewMemberPage() {
   await requireAdminPage();
   return (
     <>
-      <PageHeader title="เพิ่มสมาชิก" back={{ href: "/members", label: "สมาชิก" }} description="สำหรับคนที่ยังไม่มีบัญชี เพิ่มแล้วส่ง “ลิงก์ผูกบัญชี” ให้เขาผูกกับ LINE ภายหลังได้" />
-      <Card><CardBody><MemberForm action={createMember} showNote submitLabel="เพิ่มสมาชิก" /></CardBody></Card>
+      <PageHeader
+        title="เพิ่มสมาชิก"
+        back={{ href: "/members", label: "สมาชิก" }}
+        description="สำหรับคนที่ยังไม่มีบัญชี เพิ่มแล้วส่ง “ลิงก์ผูกบัญชี” ให้เขาผูกกับ LINE ภายหลังได้"
+      />
+      <Card>
+        <CardBody>
+          <MemberForm action={createMember} showNote submitLabel="เพิ่มสมาชิก" />
+        </CardBody>
+      </Card>
     </>
   );
 }

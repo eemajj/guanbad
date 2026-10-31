@@ -95,6 +95,7 @@ model Member {
   user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   /// ลิงก์ให้สมาชิกที่หัวก๊วนสร้างไว้ มาผูกกับบัญชี LINE ของตัวเอง
   claimToken     String?       @unique
+  claimExpiresAt DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   participations Participant[]

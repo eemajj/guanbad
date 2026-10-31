@@ -13,7 +13,9 @@ export function Field({ label, hint, className, children }: { label: string; hin
 
 export const Input = ({ className, ...p }: ComponentProps<"input">) => <input className={cn("input", className)} {...p} />;
 export const Select = ({ className, ...p }: ComponentProps<"select">) => <select className={cn("input", className)} {...p} />;
-export const Textarea = ({ className, ...p }: ComponentProps<"textarea">) => <textarea className={cn("input min-h-20", className)} {...p} />;
+export const Textarea = ({ className, ...p }: ComponentProps<"textarea">) => (
+  <textarea className={cn("input min-h-20", className)} {...p} />
+);
 
 export function Checkbox({ label, hint, ...p }: ComponentProps<"input"> & { label: string; hint?: string }) {
   return (

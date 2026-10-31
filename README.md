@@ -108,14 +108,28 @@ npm run dev
 
 เปิด http://localhost:3000 แล้วล็อกอินด้วยชื่ออะไรก็ได้ คนแรกจะเป็นหัวก๊วน เปิดอีกเบราว์เซอร์ (หรือหน้าต่างไม่ระบุตัวตน) แล้วล็อกอินด้วยชื่ออื่น เพื่อลองในมุมสมาชิก
 
-ตรวจโค้ด:
+ตรวจโค้ด (ทุกคำสั่งนี้รันใน CI ทุกครั้งที่ push):
 
 ```bash
-npm test
+npm run check
+```
+
+`check` = typecheck + ESLint + Prettier + unit test (logic ใน `src/domain`)
+
+เทสต์กับฐานข้อมูลจริง: แต่ละครั้งที่รันจะสร้างฐานข้อมูลใหม่ (ไม่ลบของเดิม) ชื่อฐานข้อมูลต้องมีคำว่า test หรือ e2e ระบบจึงจะยอมรัน
+
+```bash
+TEST_DATABASE_URL="postgresql://guan:guan@localhost:5432/guan_test" npm run test:integration
 ```
 
 ```bash
-npm run lint
+npm run build && E2E_DATABASE_URL="postgresql://guan:guan@localhost:5432/guan_e2e" npm run test:e2e
+```
+
+ก่อนรันครั้งแรก สร้างฐานข้อมูลตั้งต้นไว้ก่อน:
+
+```bash
+docker compose exec db psql -U guan -c "CREATE DATABASE guan_test" -c "CREATE DATABASE guan_e2e"
 ```
 
 ## ตั้งค่า LINE Login

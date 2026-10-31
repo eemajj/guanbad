@@ -34,6 +34,9 @@ async function assertUniqueNickname(nickname: string, exceptId?: string) {
   if (dupe) throw new ActionError(`มีสมาชิกชื่อ “${dupe.nickname}” แล้ว ลองเติมตัวอักษรให้ต่างกัน`);
 }
 
+/** ลิงก์ผูกบัญชีใช้ได้ 7 วัน กันลิงก์หลุดไปแล้วคนอื่นใช้ */
+const CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export async function createMember(form: FormData) {
   return run(async () => {
     await requireAdminAction();
@@ -76,7 +79,10 @@ export async function createClaimLink(id: string) {
     const m = await prisma.member.findUnique({ where: { id } });
     if (!m) throw new ActionError("ไม่พบสมาชิก");
     if (m.userId) throw new ActionError("สมาชิกคนนี้ผูกบัญชีแล้ว");
-    await prisma.member.update({ where: { id }, data: { claimToken: randomBytes(12).toString("base64url") } });
+    await prisma.member.update({
+      where: { id },
+      data: { claimToken: randomBytes(12).toString("base64url"), claimExpiresAt: new Date(Date.now() + CLAIM_TTL_MS) },
+    });
     revalidatePath(`/members/${id}`);
     return { ok: true, message: "สร้างลิงก์แล้ว" };
   });
@@ -87,8 +93,9 @@ export async function claimMember(token: string) {
     const viewer = await requireViewerAction();
     if (viewer.member) throw new ActionError(`บัญชีนี้เป็น “${viewer.member.nickname}” อยู่แล้ว`);
     const m = await prisma.member.findUnique({ where: { claimToken: token } });
-    if (!m || m.userId) throw new ActionError("ลิงก์นี้ใช้ไม่ได้แล้ว ขอลิงก์ใหม่จากหัวก๊วน");
-    await prisma.member.update({ where: { id: m.id }, data: { userId: viewer.user.id, claimToken: null } });
+    if (!m || m.userId || !m.claimExpiresAt || m.claimExpiresAt < new Date())
+      throw new ActionError("ลิงก์นี้ใช้ไม่ได้แล้ว ขอลิงก์ใหม่จากหัวก๊วน");
+    await prisma.member.update({ where: { id: m.id }, data: { userId: viewer.user.id, claimToken: null, claimExpiresAt: null } });
     revalidatePath("/");
     return { ok: true, message: `ยินดีต้อนรับ ${m.nickname}`, redirect: "/" };
   });

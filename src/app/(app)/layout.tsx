@@ -40,10 +40,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex items-center gap-3 rounded-xl bg-white/10 p-3">
           <Avatar name={name} image={viewer.user.image} />
           <div className="min-w-0 flex-1">
-            <Link href="/me" className="block truncate text-sm font-semibold hover:underline">{name}</Link>
+            <Link href="/me" className="block truncate text-sm font-semibold hover:underline">
+              {name}
+            </Link>
             <div className="text-xs text-white/70">{viewer.isAdmin ? "หัวก๊วน" : "สมาชิก"}</div>
           </div>
-          <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+          >
             <button className="rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10 hover:text-white">ออก</button>
           </form>
         </div>

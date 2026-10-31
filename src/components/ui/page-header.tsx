@@ -1,7 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export function PageHeader({ title, description, back, actions }: { title: ReactNode; description?: ReactNode; back?: { href: string; label: string }; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  back,
+  actions,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  back?: { href: string; label: string };
+  actions?: ReactNode;
+}) {
   return (
     <header className="flex flex-col gap-1">
       {back && (

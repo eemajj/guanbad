@@ -16,6 +16,9 @@ export const thaiDateLong = (d: Date) => thaiDate(d, { weekday: "long", day: "nu
 export const thaiDateTime = (d: Date) =>
   d.toLocaleString("th-TH", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
+/** "23:39" in Bangkok time */
+export const thaiTime = (d: Date) => d.toLocaleTimeString("th-TH", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+
 export const minutesSince = (d: Date, now = Date.now()) => Math.max(0, Math.floor((now - d.getTime()) / 60000));
 
 /** Today's date in Bangkok as YYYY-MM-DD */
