@@ -1,6 +1,7 @@
 import type { Court } from "@prisma/client";
 import { levelCode } from "@/domain/levels";
 import { minutesSince } from "@/lib/format";
+import { MinutesSince } from "@/ui/elapsed";
 import { ActionButton } from "@/ui/action";
 import { Badge } from "@/ui/badge";
 import { Dialog } from "@/ui/dialog";
@@ -22,7 +23,13 @@ export function CourtCard({ s, court, match: m, nextInQueue, isAdmin }: Props) {
     <article className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 shadow-card">
       <div className="flex items-baseline justify-between">
         <h3 className="text-lg font-bold">คอร์ท {court.name}</h3>
-        {m ? <span className="num text-sm text-muted">{minutesSince(m.startedAt)} นาที</span> : <Badge>ว่าง</Badge>}
+        {m ? (
+          <span className="num text-sm text-muted">
+            <MinutesSince since={m.startedAt} /> นาที
+          </span>
+        ) : (
+          <Badge>ว่าง</Badge>
+        )}
       </div>
 
       {m ? (

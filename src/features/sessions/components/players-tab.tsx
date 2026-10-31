@@ -123,11 +123,16 @@ export function PlayersTab({
                       <div className="flex flex-wrap justify-end gap-1">
                         {s.status === "LIVE" &&
                           (p.status === "ACTIVE" ? (
-                            <ActionButton action={setParticipantStatus.bind(null, p.id, "RESTING")} size="sm">
+                            <ActionButton action={setParticipantStatus.bind(null, p.id, "RESTING")} optimistic="พักแล้ว" size="sm">
                               พัก
                             </ActionButton>
                           ) : (
-                            <ActionButton action={setParticipantStatus.bind(null, p.id, "ACTIVE")} size="sm" variant="primary">
+                            <ActionButton
+                              action={setParticipantStatus.bind(null, p.id, "ACTIVE")}
+                              optimistic="เข้าคิวแล้ว"
+                              size="sm"
+                              variant="primary"
+                            >
                               กลับมาเล่น
                             </ActionButton>
                           ))}

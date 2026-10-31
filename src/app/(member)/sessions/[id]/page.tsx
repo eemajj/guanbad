@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { requireMemberPage } from "@/server/viewer";
 import { thaiDateLong } from "@/lib/format";
 import { deriveState, loadSession } from "@/features/sessions/state";
-import { AutoRefresh } from "@/ui/auto-refresh";
+import { LiveRefresh } from "@/ui/live-refresh";
 import { BillsTab } from "@/features/billing/components/bills-tab";
 import { CourtsTab } from "@/features/play/components/courts-tab";
 import { PlayersTab } from "@/features/sessions/components/players-tab";
@@ -44,11 +44,14 @@ export default async function SessionPage({
   const tab: Tab = allowed.includes(tabParam as Tab) ? (tabParam as Tab) : fallback;
   const myId = viewer.member?.id;
 
-  const roster = viewer.isAdmin ? await activeRoster() : [];
+  // The registry is only needed for the organiser's "add players" picker.
+  const roster = viewer.isAdmin && tab === "players" && s.status !== "CLOSED" ? await activeRoster() : [];
 
   return (
     <>
-      {s.status === "LIVE" && <AutoRefresh />}
+      {s.status !== "CLOSED" && (
+        <LiveRefresh url={paths.api.sessionVersion(s.id)} version={s.version} seconds={s.status === "LIVE" ? 3 : 10} />
+      )}
       <header className="flex flex-col gap-3">
         <Link href={paths.sessions} className="text-[13px] text-muted hover:text-ink">
           ← รอบตีทั้งหมด

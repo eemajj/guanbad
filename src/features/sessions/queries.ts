@@ -37,3 +37,9 @@ export const getSessionVenue = (id: string) => prisma.session.findUnique({ where
 
 export const getSessionWithCourts = (id: string) =>
   prisma.session.findUnique({ where: { id }, include: { courts: { orderBy: { position: "asc" } } } });
+
+/** The session's change counter (see the session_version migration). null if the session does not exist. */
+export async function getSessionVersion(id: string) {
+  const s = await prisma.session.findUnique({ where: { id }, select: { version: true } });
+  return s?.version ?? null;
+}

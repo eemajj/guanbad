@@ -1,10 +1,22 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { dateFromISO, monthRange, todayISO } from "@/lib/format";
 import { pairRecords, playerRecords, rankPlayers, recordCoverage } from "@/domain/results";
 import { prisma } from "@/server/db";
 
-/** Finished games (with teams and results), optionally limited to some members and/or a date range. */
+/** Cache tag for everything derived from game results; invalidated by refresh.results(). */
+export const RESULTS_TAG = "results";
+
+/**
+ * Finished games (with teams and results), optionally limited to some members and/or a date range.
+ * Cached until a result changes, since stats pages read every game ever played.
+ */
 export async function loadResults(opts: { memberIds?: string[]; from?: Date; to?: Date } = {}) {
+  const key = JSON.stringify({ m: opts.memberIds ?? null, f: opts.from?.toISOString() ?? null, t: opts.to?.toISOString() ?? null });
+  return unstable_cache(() => loadResultsUncached(opts), ["results", key], { tags: [RESULTS_TAG] })();
+}
+
+async function loadResultsUncached(opts: { memberIds?: string[]; from?: Date; to?: Date } = {}) {
   const matches = await prisma.match.findMany({
     where: {
       status: "DONE",

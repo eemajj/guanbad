@@ -59,6 +59,7 @@ export function OutstandingCard({ owed }: { owed: Owed }) {
                     </Link>
                     <ActionButton
                       action={setChargeStatus.bind(null, c.id, "PAID")}
+                      optimistic="✓ ได้รับแล้ว"
                       size="sm"
                       variant={c.status === "REPORTED" ? "primary" : "secondary"}
                     >

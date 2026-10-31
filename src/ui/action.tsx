@@ -103,6 +103,7 @@ export function ActionButton({
   size,
   className,
   closeDialog,
+  optimistic,
 }: {
   action: () => Promise<ActionResult>;
   children: ReactNode;
@@ -111,10 +112,13 @@ export function ActionButton({
   size?: ButtonSize;
   className?: string;
   closeDialog?: boolean;
+  /** Shown as soon as the button is pressed, e.g. "✓ ได้รับแล้ว". Reverts if the server refuses. */
+  optimistic?: ReactNode;
 }) {
   const handle = useResult();
   const close = useCloseDialog();
   const [pending, start] = useTransition();
+  const busy = optimistic ?? "กำลังทำ…";
   const [arming, setArming] = useState(false);
   const fire = () =>
     start(async () => {
@@ -125,7 +129,7 @@ export function ActionButton({
     return (
       <span className="inline-flex flex-wrap items-center gap-2">
         <Button variant="danger" size={size} disabled={pending} onClick={fire}>
-          {pending ? "กำลังทำ…" : confirm}
+          {pending ? busy : confirm}
         </Button>
         <Button variant="ghost" size={size} onClick={() => setArming(false)}>
           ไม่ใช่
@@ -134,8 +138,15 @@ export function ActionButton({
     );
   }
   return (
-    <Button variant={variant} size={size} className={className} disabled={pending} onClick={() => (confirm ? setArming(true) : fire())}>
-      {pending ? "กำลังทำ…" : children}
+    <Button
+      variant={pending && optimistic ? "secondary" : variant}
+      size={size}
+      className={className}
+      disabled={pending}
+      aria-busy={pending}
+      onClick={() => (confirm ? setArming(true) : fire())}
+    >
+      {pending ? busy : children}
     </Button>
   );
 }

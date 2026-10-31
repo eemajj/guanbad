@@ -1,4 +1,4 @@
-import { minutesSince } from "@/lib/format";
+import { MinutesSince } from "@/ui/elapsed";
 import { Badge } from "@/ui/badge";
 import { Card, CardBody, CardHeader } from "@/ui/card";
 import { LevelBadge } from "@/ui/level";
@@ -20,7 +20,7 @@ export function QueueCard({ s, st }: { s: SessionDetail; st: SessionState }) {
                 <span className="num w-6 text-right text-muted">{i + 1}</span>
                 <span className="flex-1 font-medium">{m.nickname}</span>
                 <span className="text-xs text-muted">
-                  รอ {minutesSince(new Date(q.queuedAt))} นาที · {q.games} เกม
+                  รอ <MinutesSince since={new Date(q.queuedAt)} /> นาที · {q.games} เกม
                 </span>
                 <LevelBadge level={m.level} />
               </li>

@@ -68,7 +68,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
       {viewer?.isAdmin && (
         <div className="flex flex-wrap justify-center gap-2 border-t border-line pt-4">
           {open && (
-            <ActionButton action={setChargeStatus.bind(null, charge.id, "PAID")} variant="primary">
+            <ActionButton action={setChargeStatus.bind(null, charge.id, "PAID")} optimistic="✓ ได้รับแล้ว" variant="primary">
               ได้รับเงินแล้ว
             </ActionButton>
           )}

@@ -27,7 +27,7 @@ export function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: Ses
           </div>
         </div>
         {s.selfSignup && !full && (
-          <ActionButton action={joinSession.bind(null, s.id)} variant="primary" size="lg">
+          <ActionButton action={joinSession.bind(null, s.id)} optimistic="ลงชื่อแล้ว ✓" variant="primary" size="lg">
             ลงชื่อ
           </ActionButton>
         )}
@@ -67,11 +67,11 @@ export function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: Ses
         )}
         {s.status === "LIVE" &&
           (me.status === "ACTIVE" ? (
-            <ActionButton action={setParticipantStatus.bind(null, me.id, "RESTING")} size="lg">
+            <ActionButton action={setParticipantStatus.bind(null, me.id, "RESTING")} optimistic="พักแล้ว" size="lg">
               ขอพัก
             </ActionButton>
           ) : (
-            <ActionButton action={setParticipantStatus.bind(null, me.id, "ACTIVE")} variant="primary" size="lg">
+            <ActionButton action={setParticipantStatus.bind(null, me.id, "ACTIVE")} optimistic="เข้าคิวแล้ว" variant="primary" size="lg">
               กลับมาเล่น
             </ActionButton>
           ))}

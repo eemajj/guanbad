@@ -166,6 +166,7 @@ export async function deleteSession(id: string) {
     ]);
     refresh.session(id);
     refresh.money();
+    refresh.results();
     return { ok: true, message: "ลบรอบแล้ว", redirect: paths.sessions };
   });
 }

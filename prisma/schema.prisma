@@ -122,6 +122,8 @@ model Session {
   maxPlayers   Int?
   selfSignup   Boolean       @default(true)
   status       SessionStatus @default(OPEN)
+  /// เพิ่มขึ้นทุกครั้งที่รอบนี้หรือข้อมูลในรอบเปลี่ยน (ตั้งโดย trigger ในฐานข้อมูล) ใช้ให้หน้าจอรู้ว่าต้องโหลดใหม่
+  version      Int           @default(0)
   note         String?
   createdAt    DateTime      @default(now())
   startedAt    DateTime?
@@ -189,6 +191,7 @@ model MatchPlayer {
   team     Team
 
   @@id([matchId, memberId])
+  @@index([memberId])
 }
 
 model Charge {
@@ -210,6 +213,7 @@ model Charge {
 
   @@unique([sessionId, memberId])
   @@index([status])
+  @@index([memberId, status])
 }
 
 model Expense {

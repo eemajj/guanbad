@@ -142,7 +142,7 @@ async function AdminOverview() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="num text-lg font-bold">{baht(c.total)}</span>
-                  <ActionButton action={setChargeStatus.bind(null, c.id, "PAID")} variant="primary" size="sm">
+                  <ActionButton action={setChargeStatus.bind(null, c.id, "PAID")} optimistic="✓ ได้รับแล้ว" variant="primary" size="sm">
                     ยืนยันรับเงิน
                   </ActionButton>
                 </div>

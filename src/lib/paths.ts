@@ -27,4 +27,6 @@ export const paths = {
 
   pay: (chargeId: string) => `/pay/${chargeId}`,
   claim: (token: string) => `/claim/${token}`,
+
+  api: { sessionVersion: (id: string) => `/api/sessions/${id}/version` },
 } as const;

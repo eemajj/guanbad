@@ -112,6 +112,7 @@ export function BillsTab({ s, st, isAdmin, myMemberId }: { s: SessionDetail; st:
                         {isAdmin && (charge.status === "UNPAID" || charge.status === "REPORTED") && (
                           <ActionButton
                             action={setChargeStatus.bind(null, charge.id, "PAID")}
+                            optimistic="✓ ได้รับแล้ว"
                             size="sm"
                             variant={charge.status === "REPORTED" ? "primary" : "secondary"}
                           >
