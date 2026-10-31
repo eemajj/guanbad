@@ -54,7 +54,7 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
                 <th className="px-4 py-2 font-semibold sm:px-2">ชื่อ</th>
                 <th className="hidden px-2 py-2 font-semibold sm:table-cell">สถานะ</th>
                 <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">เกม</th>
-                <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">ชนะ</th>
+                <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">ชนะ–แพ้</th>
                 <th className="px-4 py-2 text-right font-semibold sm:px-5"><span className="sr-only">จัดการ</span></th>
               </tr>
             </thead>
@@ -75,14 +75,14 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted sm:hidden">
                         <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
-                        {stat.games} เกม · ชนะ {stat.wins}
+                        {stat.games} เกม · ชนะ {stat.wins} แพ้ {stat.losses}
                       </div>
                     </td>
                     <td className="hidden px-2 py-2.5 sm:table-cell">
                       <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
                     </td>
                     <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.games}</td>
-                    <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.wins}</td>
+                    <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.wins}–{stat.losses}</td>
                     <td className="px-4 py-2.5 sm:px-5">
                       {canEdit && (
                         <div className="flex flex-wrap justify-end gap-1">

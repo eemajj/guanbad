@@ -56,6 +56,11 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
           {viewer.isAdmin && <AdminActions s={s} />}
         </div>
         <SessionSteps status={s.status} />
+        {viewer.isAdmin && s.status === "CLOSED" && st.results.total > st.results.withWinner && (
+          <Link href="?tab=courts" className="self-start rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn hover:underline">
+            ยังไม่ได้บันทึกผล {st.results.total - st.results.withWinner} เกม · ใส่ผลย้อนหลังได้ที่แท็บคอร์ท →
+          </Link>
+        )}
       </header>
 
       {myId && <MyCard s={s} st={st} memberId={myId} isAdmin={viewer.isAdmin} />}
@@ -119,7 +124,7 @@ function MyCard({ s, st, memberId, isAdmin }: { s: SessionDetail; st: SessionSta
   const queuePos = st.queue.findIndex((q) => q.id === memberId) + 1;
 
   let headline: string;
-  let sub = `เล่นแล้ว ${stat.games} เกม · ชนะ ${stat.wins}`;
+  let sub = `เล่นแล้ว ${stat.games} เกม · ชนะ ${stat.wins} แพ้ ${stat.losses}`;
   if (s.status === "OPEN") { headline = "ลงชื่อแล้ว ✓"; sub = `เจอกัน ${s.startTime} น.`; }
   else if (s.status === "CLOSED") headline = charge ? `ยอดของคุณ ${baht(charge.total)}` : "จบรอบแล้ว";
   else if (playingCourt) headline = `กำลังเล่น คอร์ท ${playingCourt.name}`;

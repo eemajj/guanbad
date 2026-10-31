@@ -8,6 +8,7 @@ import { ActionButton } from "@/components/action";
 import { SessionRow } from "@/components/session/session-row";
 import { ChargeStatusBadge } from "@/components/session/status";
 import { LevelBadge } from "@/components/level";
+import { formatRate, winRate } from "@/domain/results";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty";
 import { LinkButton, buttonClass } from "@/components/ui/button";
@@ -74,7 +75,7 @@ export default async function Dashboard() {
         <section className="grid grid-cols-3 gap-3">
           <Stat label="มาตีแล้ว" value={myStats.sessions} sub="รอบ" />
           <Stat label="เล่นทั้งหมด" value={myStats.games} sub="เกม" />
-          <Stat label="อัตราชนะ" value={myStats.games ? `${Math.round((myStats.wins / myStats.games) * 100)}%` : "–"} sub={`ชนะ ${myStats.wins} เกม`} />
+          <Stat label="อัตราชนะ" value={formatRate(winRate(myStats))} sub={`ชนะ ${myStats.wins} แพ้ ${myStats.losses}`} />
         </section>
       )}
     </>

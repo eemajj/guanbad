@@ -1,34 +1,52 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dateFromISO, monthRange, todayISO } from "@/lib/format";
+import { emptyRecord, playerRecords, type PlayerRecord } from "@/domain/results";
 
-export type MemberStats = { sessions: number; games: number; wins: number; outstanding: number; lastSession: Date | null };
+export type MemberStats = PlayerRecord & { sessions: number; outstanding: number; lastSession: Date | null };
 
-const emptyStats = (): MemberStats => ({ sessions: 0, games: 0, wins: 0, outstanding: 0, lastSession: null });
+const emptyStats = (): MemberStats => ({ ...emptyRecord(), sessions: 0, outstanding: 0, lastSession: null });
 
-/** Lifetime stats for many members in four grouped queries. */
+/** Finished games (with teams and results), optionally limited to some members and/or a date range. */
+export async function loadResults(opts: { memberIds?: string[]; from?: Date; to?: Date } = {}) {
+  const matches = await prisma.match.findMany({
+    where: {
+      status: "DONE",
+      ...(opts.memberIds ? { players: { some: { memberId: { in: opts.memberIds } } } } : {}),
+      ...(opts.from || opts.to ? { session: { date: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lt: opts.to } : {}) } } } : {}),
+    },
+    select: { winner: true, scoreA: true, scoreB: true, sessionId: true, players: { select: { memberId: true, team: true } } },
+  });
+  return matches.map((m) => ({
+    sessionId: m.sessionId,
+    winner: m.winner,
+    scoreA: m.scoreA,
+    scoreB: m.scoreB,
+    teamA: m.players.filter((p) => p.team === "A").map((p) => p.memberId),
+    teamB: m.players.filter((p) => p.team === "B").map((p) => p.memberId),
+  }));
+}
+
+/** Lifetime stats for members: game record via domain/results, plus sessions attended and money owed. */
 export async function memberStats(memberIds?: string[]) {
-  const idFilter = memberIds ? Prisma.sql`AND mp."memberId" IN (${Prisma.join(memberIds.length ? memberIds : [""])})` : Prisma.empty;
-  const [games, sessions, owed] = await Promise.all([
-    prisma.$queryRaw<{ memberId: string; games: bigint; wins: bigint }[]>`
-      SELECT mp."memberId", COUNT(*) AS games, COUNT(*) FILTER (WHERE m.winner = mp.team) AS wins
-      FROM "MatchPlayer" mp JOIN "Match" m ON m.id = mp."matchId"
-      WHERE m.status = 'DONE' ${idFilter}
-      GROUP BY mp."memberId"`,
+  const ids = memberIds ? (memberIds.length ? memberIds : [""]) : undefined;
+  const [results, sessions, owed] = await Promise.all([
+    loadResults({ memberIds: ids }),
     prisma.$queryRaw<{ memberId: string; sessions: bigint; last: Date }[]>`
       SELECT p."memberId", COUNT(*) AS sessions, MAX(s.date) AS last
       FROM "Participant" p JOIN "Session" s ON s.id = p."sessionId"
-      WHERE s.status <> 'OPEN' ${memberIds ? Prisma.sql`AND p."memberId" IN (${Prisma.join(memberIds.length ? memberIds : [""])})` : Prisma.empty}
+      WHERE s.status <> 'OPEN' ${ids ? Prisma.sql`AND p."memberId" IN (${Prisma.join(ids)})` : Prisma.empty}
       GROUP BY p."memberId"`,
     prisma.charge.groupBy({
       by: ["memberId"],
-      where: { status: { in: ["UNPAID", "REPORTED"] }, ...(memberIds ? { memberId: { in: memberIds } } : {}) },
+      where: { status: { in: ["UNPAID", "REPORTED"] }, ...(ids ? { memberId: { in: ids } } : {}) },
       _sum: { total: true },
     }),
   ]);
+  const records = playerRecords(results);
   const map = new Map<string, MemberStats>();
-  const get = (id: string) => map.get(id) ?? (map.set(id, emptyStats()), map.get(id)!);
-  for (const g of games) Object.assign(get(g.memberId), { games: Number(g.games), wins: Number(g.wins) });
+  const get = (id: string) => map.get(id) ?? (map.set(id, { ...emptyStats(), ...(records.get(id) ?? {}) }), map.get(id)!);
+  for (const id of records.keys()) get(id);
   for (const s of sessions) Object.assign(get(s.memberId), { sessions: Number(s.sessions), lastSession: s.last });
   for (const o of owed) get(o.memberId).outstanding = o._sum.total ?? 0;
   return { get: (id: string) => map.get(id) ?? emptyStats() };

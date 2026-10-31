@@ -168,7 +168,10 @@ model Match {
   status    MatchStatus   @default(PLAYING)
   startedAt DateTime      @default(now())
   endedAt   DateTime?
+  /// ผลการแข่งไม่บังคับ: ว่าง = ลืมบันทึก, มีแค่ winner = รู้แค่ใครชนะ, มีแต้ม = winner คิดจากแต้ม
   winner    Team?
+  scoreA    Int?
+  scoreB    Int?
   shuttles  Int           @default(0)
   players   MatchPlayer[]
 

@@ -4,6 +4,7 @@ import { requireAdminPage } from "@/lib/viewer";
 import { baht, thaiDate } from "@/lib/format";
 import { LEVELS, LEVEL_ORDER } from "@/domain/levels";
 import { memberStats } from "@/server/queries";
+import { formatRate, winRate } from "@/domain/results";
 import { LevelBadge } from "@/components/level";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -60,7 +61,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                   <th className="hidden px-2 py-2 font-semibold sm:table-cell">บัญชี</th>
                   <th className="hidden px-2 py-2 text-right font-semibold sm:table-cell">รอบ</th>
                   <th className="px-2 py-2 text-right font-semibold">เกม</th>
-                  <th className="px-2 py-2 text-right font-semibold">ชนะ</th>
+                  <th className="px-2 py-2 text-right font-semibold">%ชนะ</th>
                   <th className="hidden px-2 py-2 font-semibold md:table-cell">มาล่าสุด</th>
                   <th className="px-5 py-2 text-right font-semibold">ยอดค้าง</th>
                 </tr>
@@ -80,7 +81,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                       <td className="hidden px-2 py-2.5 sm:table-cell">{m.user ? <Badge tone={m.user.role === "ADMIN" ? "brand" : "ok"}>{m.user.role === "ADMIN" ? "หัวก๊วน" : "LINE"}</Badge> : <Badge tone="outline">ยังไม่ผูก</Badge>}</td>
                       <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{st.sessions}</td>
                       <td className="num px-2 py-2.5 text-right">{st.games}</td>
-                      <td className="num px-2 py-2.5 text-right">{st.games ? `${Math.round((st.wins / st.games) * 100)}%` : "–"}</td>
+                      <td className="num px-2 py-2.5 text-right">{formatRate(winRate(st))}</td>
                       <td className="hidden px-2 py-2.5 text-muted md:table-cell">{st.lastSession ? thaiDate(st.lastSession) : "–"}</td>
                       <td className={`num px-5 py-2.5 text-right ${st.outstanding ? "font-bold text-danger" : "text-muted"}`}>{st.outstanding ? baht(st.outstanding) : "–"}</td>
                     </tr>

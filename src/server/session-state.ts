@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { levelRank } from "@/domain/levels";
 import { History, orderQueue, pickMatch, type Pairing, type QueueEntry } from "@/domain/matchmaking";
 import { computeFees, hoursBetween } from "@/domain/fees";
+import { emptyRecord, playerRecords, recordCoverage, type PlayerRecord, type ResultMatch } from "@/domain/results";
 
 export const sessionInclude = {
   courts: { orderBy: { position: "asc" } },
@@ -20,12 +21,16 @@ export async function loadSession(id: string, tx: Prisma.TransactionClient = pri
 
 export const teamOf = (m: MatchWithPlayers, team: "A" | "B") => m.players.filter((p) => p.team === team).map((p) => p.memberId);
 
-export type PlayerStat = { games: number; wins: number; shuttles: number; playing: MatchWithPlayers | null };
+export type PlayerStat = PlayerRecord & { shuttles: number; playing: MatchWithPlayers | null };
+
+export const toResultMatch = (m: MatchWithPlayers): ResultMatch => ({ teamA: teamOf(m, "A"), teamB: teamOf(m, "B"), winner: m.winner, scoreA: m.scoreA, scoreB: m.scoreB });
 
 /** Everything the session screens need, derived from one loaded session. */
 export function deriveState(s: SessionDetail) {
+  const done = s.matches.filter((m) => m.status === "DONE");
+  const records = playerRecords(done.map(toResultMatch));
   const stats = new Map<string, PlayerStat>();
-  for (const p of s.participants) stats.set(p.memberId, { games: 0, wins: 0, shuttles: 0, playing: null });
+  for (const p of s.participants) stats.set(p.memberId, { ...(records.get(p.memberId) ?? emptyRecord()), shuttles: 0, playing: null });
 
   const counted = s.matches.filter((m) => m.status !== "CANCELLED");
   const history = new History(counted.map((m) => ({ teamA: teamOf(m, "A"), teamB: teamOf(m, "B") })));
@@ -35,11 +40,7 @@ export function deriveState(s: SessionDetail) {
       const st = stats.get(mp.memberId);
       if (!st) continue;
       if (m.status === "PLAYING") st.playing = m;
-      if (m.status === "DONE") {
-        st.games++;
-        st.shuttles += m.shuttles / 4;
-        if (m.winner && m.winner === mp.team) st.wins++;
-      }
+      if (m.status === "DONE") st.shuttles += m.shuttles / 4;
     }
   }
 
@@ -73,7 +74,9 @@ export function deriveState(s: SessionDetail) {
 
   const memberName = new Map(s.participants.map((p) => [p.memberId, p.member.nickname]));
 
-  return { stats, history, queue, playingByCourt, freeCourts, next, fees, memberName, hours: hoursBetween(s.startTime, s.endTime) };
+  const results = recordCoverage(done);
+
+  return { stats, results, history, queue, playingByCourt, freeCourts, next, fees, memberName, hours: hoursBetween(s.startTime, s.endTime) };
 }
 
 export type SessionState = ReturnType<typeof deriveState>;

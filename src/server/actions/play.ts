@@ -9,6 +9,7 @@ import { ActionError, requireAdminAction, requireViewerAction } from "@/lib/view
 import { deriveState, loadSession } from "@/server/session-state";
 import { assignCourts, lockSession } from "@/server/match-engine";
 import { isLevel } from "@/domain/levels";
+import { normalizeResult } from "@/domain/results";
 
 const refresh = (sessionId: string) => revalidatePath(`/sessions/${sessionId}`);
 
@@ -135,15 +136,26 @@ export async function fillCourts(sessionId: string, courtId?: string) {
   });
 }
 
-const finishSchema = z.object({
+const optionalInt = z.preprocess((v) => (v === "" || v == null ? null : v), z.coerce.number({ invalid_type_error: "แต้มต้องเป็นตัวเลข" }).nullable());
+const resultSchema = z.object({
   winner: z.enum(["A", "B", ""]).transform((v) => (v === "" ? null : v)),
+  scoreA: optionalInt,
+  scoreB: optionalInt,
   shuttles: z.coerce.number().int().min(0, "จำนวนลูกต้องไม่ติดลบ").max(30),
 });
+
+/** Parse winner/points from a form and apply the result rules (see domain/results). */
+function parseResult(form: FormData) {
+  const d = resultSchema.parse(Object.fromEntries(form));
+  const r = normalizeResult({ winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB });
+  if (!r.ok) throw new ActionError(r.error);
+  return { ...r.value, shuttles: d.shuttles };
+}
 
 export async function finishMatch(matchId: string, form: FormData) {
   return run(async () => {
     await requireAdminAction();
-    const d = finishSchema.parse(Object.fromEntries(form));
+    const d = parseResult(form);
     const result = await prisma.$transaction(async (tx) => {
       const m = await tx.match.findUnique({ where: { id: matchId }, include: { players: true, court: true } });
       if (!m) throw new ActionError("ไม่พบเกมนี้");
@@ -151,7 +163,7 @@ export async function finishMatch(matchId: string, form: FormData) {
       const fresh = await tx.match.findUnique({ where: { id: matchId } });
       if (fresh?.status !== "PLAYING") throw new ActionError("เกมนี้บันทึกไปแล้ว");
       const endedAt = new Date();
-      await tx.match.update({ where: { id: matchId }, data: { status: "DONE", winner: d.winner, shuttles: d.shuttles, endedAt } });
+      await tx.match.update({ where: { id: matchId }, data: { status: "DONE", winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles, endedAt } });
       // The four players go to the back of the queue.
       await tx.participant.updateMany({
         where: { sessionId: m.sessionId, memberId: { in: m.players.map((p) => p.memberId) } },
@@ -162,6 +174,23 @@ export async function finishMatch(matchId: string, form: FormData) {
     });
     refresh(result.sessionId);
     return { ok: true, message: result.made ? `บันทึกแล้ว · เกมใหม่ลงคอร์ท ${result.court}` : "บันทึกแล้ว · คนรอไม่พอจัดเกมใหม่" };
+  });
+}
+
+/** แก้ผลเกมที่จบแล้ว (เช่น ลืมใส่แต้ม) — ค่าลูกแก้ได้เฉพาะก่อนออกบิล */
+export async function updateMatchResult(matchId: string, form: FormData) {
+  return run(async () => {
+    await requireAdminAction();
+    const d = parseResult(form);
+    const m = await prisma.match.findUnique({ where: { id: matchId }, include: { session: { select: { status: true } } } });
+    if (!m || m.status !== "DONE") throw new ActionError("แก้ได้เฉพาะเกมที่จบแล้ว");
+    if (m.session.status === "CLOSED" && d.shuttles !== m.shuttles) {
+      throw new ActionError("ออกบิลแล้ว แก้จำนวนลูกไม่ได้ (แก้ได้แค่ผลการแข่ง) ถ้าจำเป็นให้เปิดรอบอีกครั้งก่อน");
+    }
+    await prisma.match.update({ where: { id: matchId }, data: { winner: d.winner, scoreA: d.scoreA, scoreB: d.scoreB, shuttles: d.shuttles } });
+    refresh(m.sessionId);
+    revalidatePath("/stats");
+    return { ok: true, message: d.winner ? "บันทึกผลแล้ว" : "บันทึกแล้ว (ยังไม่มีผล)" };
   });
 }
 

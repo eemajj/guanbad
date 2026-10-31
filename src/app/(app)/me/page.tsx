@@ -5,7 +5,7 @@ import { LevelBadge } from "@/components/level";
 import { MemberForm } from "@/components/member-form";
 import { MemberHistory } from "@/components/member-history";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -25,9 +25,12 @@ export default async function MePage() {
         }
         description={`ล็อกอินด้วย ${viewer.user.name} · ${viewer.isAdmin ? "หัวก๊วน" : "สมาชิก"}`}
         actions={
-          <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
-            <Button type="submit" variant="ghost">ออกจากระบบ</Button>
-          </form>
+          <>
+            {viewer.isAdmin && <LinkButton href="/settings">ตั้งค่าก๊วน</LinkButton>}
+            <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
+              <Button type="submit" variant="ghost">ออกจากระบบ</Button>
+            </form>
+          </>
         }
       />
       {m ? (

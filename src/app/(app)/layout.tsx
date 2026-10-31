@@ -15,13 +15,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? [
         { href: "/", label: "หน้าแรก", icon: "home" },
         { href: "/sessions", label: "รอบตี", icon: "court" },
+        { href: "/stats", label: "สถิติ", icon: "chart" },
         { href: "/members", label: "สมาชิก", icon: "users" },
         { href: "/finance", label: "การเงิน", icon: "wallet" },
-        { href: "/settings", label: "ตั้งค่า", icon: "settings" },
+        { href: "/settings", label: "ตั้งค่า", icon: "settings", desktopOnly: true },
       ]
     : [
         { href: "/", label: "หน้าแรก", icon: "home" },
         { href: "/sessions", label: "รอบตี", icon: "court" },
+        { href: "/stats", label: "สถิติ", icon: "chart" },
         { href: "/me", label: "ของฉัน", icon: "user" },
       ];
 

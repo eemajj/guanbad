@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { IconCourt, IconHome, IconSettings, IconUser, IconUsers, IconWallet } from "@/components/icons";
+import { IconChart, IconCourt, IconHome, IconSettings, IconUser, IconUsers, IconWallet } from "@/components/icons";
 
-const ICONS = { home: IconHome, court: IconCourt, users: IconUsers, wallet: IconWallet, settings: IconSettings, user: IconUser };
-export type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
+const ICONS = { chart: IconChart, home: IconHome, court: IconCourt, users: IconUsers, wallet: IconWallet, settings: IconSettings, user: IconUser };
+/** desktopOnly: shown in the sidebar but left out of the phone tab bar to keep it to five items */
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; desktopOnly?: boolean };
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
 
@@ -33,8 +34,9 @@ export function SideNav({ items }: { items: NavItem[] }) {
   );
 }
 
-export function TabBar({ items }: { items: NavItem[] }) {
+export function TabBar({ items: all }: { items: NavItem[] }) {
   const path = usePathname();
+  const items = all.filter((i) => !i.desktopOnly);
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>

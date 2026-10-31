@@ -1,12 +1,12 @@
 import type { SessionDetail, SessionState } from "@/server/session-state";
 import { teamOf } from "@/server/session-state";
 import { levelCode } from "@/domain/levels";
-import { cancelMatch, fillCourts, finishMatch, substitutePlayer } from "@/server/actions/play";
+import { cancelMatch, fillCourts, finishMatch, substitutePlayer, updateMatchResult } from "@/server/actions/play";
 import { startSession } from "@/server/actions/sessions";
 import { minutesSince, thaiDateTime } from "@/lib/format";
 import { ActionButton } from "@/components/action";
 import { Dialog } from "@/components/dialog";
-import { FinishMatchForm } from "@/components/session/finish-match";
+import { ResultForm } from "@/components/session/result-form";
 import { LevelBadge } from "@/components/level";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -79,10 +79,10 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
 
               {isAdmin && s.status === "LIVE" && m && (
                 <div className="flex flex-wrap gap-2">
-                  <Dialog trigger="จบเกม" variant="primary" triggerClassName="flex-1" title={`จบเกม คอร์ท ${court.name}`} description={`เล่นไป ${minutesSince(m.startedAt)} นาที`}>
-                    <FinishMatchForm action={finishMatch.bind(null, m.id)} teamA={pair(a)} teamB={pair(b)} />
+                  <Dialog key={m.id} trigger="จบเกม" variant="primary" triggerClassName="flex-1" title={`จบเกม คอร์ท ${court.name}`} description={`เล่นไป ${minutesSince(m.startedAt)} นาที`}>
+                    <ResultForm action={finishMatch.bind(null, m.id)} teamA={pair(a)} teamB={pair(b)} submitLabel="บันทึก แล้วจัดคู่ถัดไป" />
                   </Dialog>
-                  <Dialog trigger="เปลี่ยนตัว" title="เปลี่ยนตัว" description={st.queue[0] ? `${name(st.queue[0].id)} (หัวคิว) จะลงแทน แล้วคนที่ออกจะถูกตั้งเป็นพัก` : "ไม่มีคนรอคิวลงแทน"}>
+                  <Dialog key={`sub-${m.id}`} trigger="เปลี่ยนตัว" title="เปลี่ยนตัว" description={st.queue[0] ? `${name(st.queue[0].id)} (หัวคิว) จะลงแทน แล้วคนที่ออกจะถูกตั้งเป็นพัก` : "ไม่มีคนรอคิวลงแทน"}>
                     <div className="grid grid-cols-2 gap-2">
                       {[...a, ...b].map((id) => (
                         <ActionButton key={id} action={substitutePlayer.bind(null, m.id, id)} closeDialog>
@@ -142,24 +142,52 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
         </Card>
 
         <Card>
-          <CardHeader title="ผลการแข่ง" description={`${done.length} เกม · ใช้ลูก ${st.fees.shuttlesUsed} ลูก`} />
+          <CardHeader
+            title="ผลการแข่ง"
+            description={`${done.length} เกม · รู้ผล ${st.results.withWinner} · มีแต้ม ${st.results.withScore} · ใช้ลูก ${st.fees.shuttlesUsed} ลูก`}
+          />
+          {isAdmin && done.length > st.results.withWinner && (
+            <p className="border-b border-line bg-warn-soft px-5 py-2 text-sm text-warn">
+              ยังไม่ได้บันทึกผล {done.length - st.results.withWinner} เกม แตะ “ใส่ผล” เพื่อเติม (ไม่เติมก็ได้ แต่เกมนั้นจะไม่นับชนะ/แพ้)
+            </p>
+          )}
           {done.length ? (
             <ul className="divide-y divide-line">
               {done.map((m) => {
                 const court = s.courts.find((c) => c.id === m.courtId);
+                const ta = teamOf(m, "A");
+                const tb = teamOf(m, "B");
+                const scored = m.scoreA !== null && m.scoreB !== null;
                 return (
-                  <li key={m.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-2.5 text-sm">
-                    <Badge>คอร์ท {court?.name}</Badge>
-                    <span className="min-w-0">
-                      <span className={m.winner === "A" ? "font-semibold text-ok" : ""}>{pair(teamOf(m, "A"))}</span>
-                      <span className="mx-1.5 text-muted">vs</span>
-                      <span className={m.winner === "B" ? "font-semibold text-ok" : ""}>{pair(teamOf(m, "B"))}</span>
-                    </span>
-                    <span className="text-right text-xs text-muted">
-                      {m.shuttles} ลูก
-                      <br />
-                      {m.endedAt && thaiDateTime(m.endedAt).split(" ").pop()}
-                    </span>
+                  <li key={m.id} className="grid grid-cols-[1fr_auto] items-center gap-3 px-5 py-2.5 text-sm">
+                    <div className="min-w-0">
+                      <div>
+                        <span className={m.winner === "A" ? "font-semibold text-ok" : ""}>{pair(ta)}</span>
+                        <span className="mx-1.5 text-muted">vs</span>
+                        <span className={m.winner === "B" ? "font-semibold text-ok" : ""}>{pair(tb)}</span>
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                        <span>คอร์ท {court?.name}</span>·<span>{m.shuttles} ลูก</span>
+                        {m.endedAt && <>·<span>{thaiDateTime(m.endedAt).split(" ").pop()}</span></>}
+                        {!m.winner && <Badge tone="warn">ยังไม่บันทึกผล</Badge>}
+                        {m.winner && !scored && <Badge>ไม่มีแต้ม</Badge>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {scored && <span className="num text-base font-bold">{m.scoreA}–{m.scoreB}</span>}
+                      {isAdmin && (
+                        <Dialog trigger={m.winner ? "แก้" : "ใส่ผล"} size="sm" variant={m.winner ? "ghost" : "secondary"} title={`แก้ผลเกม คอร์ท ${court?.name}`} description={pair(ta) + " vs " + pair(tb)}>
+                          <ResultForm
+                            action={updateMatchResult.bind(null, m.id)}
+                            teamA={pair(ta)}
+                            teamB={pair(tb)}
+                            initial={{ winner: m.winner, scoreA: m.scoreA, scoreB: m.scoreB, shuttles: m.shuttles }}
+                            shuttlesLocked={s.status === "CLOSED"}
+                            submitLabel="บันทึกผล"
+                          />
+                        </Dialog>
+                      )}
+                    </div>
                   </li>
                 );
               })}
