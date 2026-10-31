@@ -87,6 +87,9 @@ src/
 | เปลี่ยนวิธีจัดคู่ / น้ำหนักการแบ่งทีม | `domain/matchmaking.ts` (+ เทสต์ใน `domain.test.ts`) |
 | เปลี่ยนวิธีคิดเงิน | `domain/fees.ts` แล้วดู `closeSession` ใน `features/sessions/actions.ts` |
 | เพิ่มปุ่มใหม่ที่เปลี่ยนข้อมูล | action ใน `features/<x>/actions.ts` → ปุ่มใช้ `<ActionButton>` หรือ `<ActionForm>` จาก `ui/action.tsx` |
+| ให้ย้อนการกดได้ (แทนการถาม "แน่ใจไหม") | เขียน action ย้อนกลับ (ดู `undoFinishMatch`, `undoChargeStatus`) แล้วส่งเป็น prop `undo` ให้ `<ActionButton>` / `<ActionForm>` ปุ่ม "ย้อนกลับ" จะอยู่ใน toast 10 วินาที |
+| เปลี่ยนปุ่มหลักด้านล่างจอของหน้ารอบ | `features/sessions/components/action-bar.tsx` (หนึ่งปุ่มหลักต่อสถานะ แยกหัวก๊วน/สมาชิก) |
+| เปลี่ยนจอใหญ่ที่สนาม | `app/(public)/board/[id]/page.tsx` (เปิดได้โดยไม่ล็อกอิน แสดงแค่ชื่อเล่น) |
 | เพิ่มหน้าใหม่ | `app/(member)/<path>/page.tsx` + เพิ่ม URL ใน `lib/paths.ts` + เมนูใน `app/(member)/layout.tsx` |
 | เพิ่มคอลัมน์ในฐานข้อมูล | `prisma/schema.prisma` → `npx prisma migrate dev --name <ชื่อ>` |
 | เปลี่ยนสี / ตัวอักษร | token ใน `app/globals.css` (`:root` และโหมดมืด) |

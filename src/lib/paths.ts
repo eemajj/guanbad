@@ -15,6 +15,8 @@ export const paths = {
   newSession: "/sessions/new",
   session: (id: string, tab?: SessionTab) => `/sessions/${id}${tab ? `?tab=${tab}` : ""}`,
   editSession: (id: string) => `/sessions/${id}/edit`,
+  /** Big-screen court display for a tablet/TV at the venue (no login needed). */
+  board: (id: string) => `/board/${id}`,
 
   members: "/members",
   newMember: "/members/new",

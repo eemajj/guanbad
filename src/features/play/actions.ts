@@ -156,3 +156,49 @@ async function describeGame(tx: Tx, matchId: string) {
     m.scoreA !== null && m.scoreB !== null ? ` ${m.scoreA}–${m.scoreB}` : m.winner ? ` (${team(m.winner)} ชนะ)` : " (ไม่ได้บันทึกผล)";
   return `${team("A")} vs ${team("B")}${result} · ${m.shuttles} ลูก`;
 }
+
+/** How long after "จบเกม" the organiser can still take it back. */
+const UNDO_WINDOW_MS = 10 * 60 * 1000;
+
+type FinishRecord = { matchId: string; queuedBefore: { memberId: string; queuedAt: string }[]; nextMatchIds: string[] };
+
+/**
+ * ย้อนการจบเกม (กดพลาด): เกมกลับไปอยู่บนคอร์ท ผลถูกล้าง คิวกลับเหมือนเดิม
+ * และเกมถัดไปที่ระบบเพิ่งจัดลงคอร์ทเดียวกันถูกยกเลิก ทำได้เฉพาะถ้ายังไม่มีอะไรเปลี่ยนต่อจากนั้น
+ */
+export async function undoFinishMatch(matchId: string) {
+  return asAdmin(async (viewer) => {
+    const sessionId = await inMatchLock(matchId, async (tx, sessionId) => {
+      const m = await tx.match.findUnique({ where: { id: matchId }, include: { session: { select: { status: true } } } });
+      if (m?.status !== "DONE" || !m.endedAt) throw new ActionError("เกมนี้ไม่ได้อยู่ในสถานะจบแล้ว");
+      if (m.session.status !== "LIVE") throw new ActionError("รอบนี้ไม่ได้กำลังตีอยู่ ใช้ “แก้ผล” แทน");
+      if (Date.now() - m.endedAt.getTime() > UNDO_WINDOW_MS) throw new ActionError("เกินเวลาย้อนกลับแล้ว ใช้ “แก้ผล” แทน");
+
+      const finish = await tx.activity.findFirst({ where: { type: "match.finish", sessionId }, orderBy: { at: "desc" } });
+      const record = finish?.data as FinishRecord | null;
+      if (record?.matchId !== matchId) throw new ActionError("มีการจบเกมอื่นต่อจากนี้แล้ว ย้อนกลับไม่ได้ ใช้ “แก้ผล” แทน");
+
+      // The game started automatically afterwards must still be untouched on court.
+      const next = await tx.match.findMany({ where: { id: { in: record.nextMatchIds } } });
+      if (next.some((n) => n.status !== "PLAYING")) throw new ActionError("เกมถัดไปเล่นจบไปแล้ว ย้อนกลับไม่ได้ ใช้ “แก้ผล” แทน");
+      await tx.match.deleteMany({ where: { id: { in: record.nextMatchIds } } });
+
+      for (const q of record.queuedBefore) {
+        await tx.participant.updateMany({ where: { sessionId, memberId: q.memberId }, data: { queuedAt: new Date(q.queuedAt) } });
+      }
+      await tx.match.update({
+        where: { id: matchId },
+        data: { status: "PLAYING", endedAt: null, winner: null, scoreA: null, scoreB: null, shuttles: 0 },
+      });
+      await audit(
+        viewer,
+        { type: "match.undo", sessionId, summary: `ย้อนการจบเกม: ${await describeGame(tx, matchId)}`, data: { matchId } },
+        tx,
+      );
+      return sessionId;
+    });
+    refresh.session(sessionId);
+    refresh.results();
+    return { ok: true, message: "ย้อนกลับแล้ว เกมกลับมาอยู่บนคอร์ท" };
+  });
+}

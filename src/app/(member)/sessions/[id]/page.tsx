@@ -15,7 +15,7 @@ import { ActivityList } from "@/features/activity/components/activity-list";
 import { listActivity } from "@/features/activity/queries";
 import type { SessionTab } from "@/lib/paths";
 import { AdminActions } from "@/features/sessions/components/admin-actions";
-import { MyCard } from "@/features/sessions/components/my-card";
+import { SessionActionBar } from "@/features/sessions/components/action-bar";
 import { getSessionVenue } from "@/features/sessions/queries";
 import { activeRoster } from "@/features/members/queries";
 
@@ -77,7 +77,7 @@ export default async function SessionPage({
         )}
       </header>
 
-      {myId && <MyCard s={s} st={st} memberId={myId} isAdmin={viewer.isAdmin} />}
+      <SessionActionBar s={s} st={st} memberId={myId} isAdmin={viewer.isAdmin} />
 
       <TabLinks
         current={tab}

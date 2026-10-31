@@ -9,7 +9,7 @@ const tones: Record<Tone, string> = {
   ok: "bg-ok-soft text-ok border-transparent",
   warn: "bg-warn-soft text-warn border-transparent",
   danger: "bg-danger-soft text-danger border-transparent",
-  accent: "bg-accent-soft text-accent border-transparent",
+  accent: "bg-accent-soft text-accent-text border-transparent",
   outline: "bg-transparent text-muted border-dashed border-line",
 };
 

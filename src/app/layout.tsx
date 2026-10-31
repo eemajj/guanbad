@@ -5,9 +5,12 @@ import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
+  const name = s?.groupName ?? "ก๊วนแบด";
   return {
-    title: { default: s?.groupName ?? "ก๊วนแบด", template: `%s · ${s?.groupName ?? "ก๊วนแบด"}` },
+    title: { default: name, template: `%s · ${name}` },
     description: "ระบบจัดการก๊วนแบดมินตัน",
+    // iPhone "Add to Home Screen": open full-screen with the app's own name.
+    appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
   };
 }
 
@@ -27,7 +30,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster
+          position="top-center"
+          closeButton
+          toastOptions={{
+            // App colours instead of sonner's light presets, so text stays readable (WCAG AA) in sunlight and dark mode.
+            classNames: {
+              toast: "!bg-surface !text-ink !border-line !shadow-card font-sans",
+              success: "!border-l-4 !border-l-ok",
+              error: "!border-l-4 !border-l-danger",
+              description: "!text-muted",
+              actionButton: "!bg-brand !text-brand-ink !font-semibold",
+              closeButton: "!bg-surface !text-ink !border-line",
+            },
+          }}
+        />
       </body>
     </html>
   );

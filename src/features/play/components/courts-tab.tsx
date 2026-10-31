@@ -39,7 +39,7 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
           <div className="text-sm">
             <b>คอร์ทว่าง {st.freeCourts.length}</b> <span className="text-muted">· รอคิว {st.queue.length} คน</span>
           </div>
-          <ActionButton action={fillCourts.bind(null, s.id, undefined)} variant="primary" className={canFill ? "" : "opacity-50"}>
+          <ActionButton action={fillCourts.bind(null, s.id, undefined)} variant="primary" disabled={!canFill}>
             จัดคู่ลงคอร์ทว่าง
           </ActionButton>
         </div>
@@ -62,7 +62,7 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
         <div className="rounded-xl border border-dashed border-accent bg-accent-soft px-4 py-3">
           <div className="text-xs font-semibold text-muted">เกมถัดไป (ถ้าจัดตอนนี้)</div>
           <div className="font-display text-lg font-semibold">
-            {pair(st.next.teamA)} <span className="mx-1 text-accent">vs</span> {pair(st.next.teamB)}
+            {pair(st.next.teamA)} <span className="mx-1 text-accent-text">vs</span> {pair(st.next.teamB)}
           </div>
         </div>
       )}

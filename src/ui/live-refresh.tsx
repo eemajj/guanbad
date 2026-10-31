@@ -12,9 +12,9 @@ const MAX_SOFT_TRIES = 2;
  * and refresh the page data when it is newer than what is on screen.
  *
  * It compares against the version currently *on screen* (committed), so a refresh
- * that does not land is retried on the next tick. In Next 15.5 a soft refresh is
- * occasionally dropped (see docs/adr/0005-live-updates.md); after MAX_SOFT_TRIES ticks
- * still behind, it falls back to a full reload so the data is always correct.
+ * that does not land is retried on the next tick. After MAX_SOFT_TRIES ticks still
+ * behind, it falls back to a full reload so the data is always correct. (Next 15.5 dropped
+ * soft refreshes; fixed by Next 16, see docs/adr/0006. The fallback stays as a safety net.)
  *
  * @param url     endpoint returning `{ v: number }`
  * @param version the version the current render was built from

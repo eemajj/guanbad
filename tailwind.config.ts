@@ -14,7 +14,7 @@ export default {
         muted: token("muted"),
         line: token("line"),
         brand: { DEFAULT: token("brand"), deep: token("brand-deep"), soft: token("brand-soft"), ink: token("brand-ink") },
-        accent: { DEFAULT: token("accent"), soft: token("accent-soft"), ink: token("accent-ink") },
+        accent: { DEFAULT: token("accent"), soft: token("accent-soft"), ink: token("accent-ink"), text: token("accent-text") },
         ok: { DEFAULT: token("ok"), soft: token("ok-soft") },
         warn: { DEFAULT: token("warn"), soft: token("warn-soft") },
         danger: { DEFAULT: token("danger"), soft: token("danger-soft") },

@@ -49,7 +49,10 @@ export function TabBar({ items: all }: { items: NavItem[] }) {
   const path = usePathname();
   const items = all.filter((i) => !i.desktopOnly);
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      aria-label="เมนูหลัก"
+    >
       <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
         {items.map((it) => {
           const Icon = ICONS[it.icon];
@@ -59,7 +62,10 @@ export function TabBar({ items: all }: { items: NavItem[] }) {
               key={it.href}
               href={it.href}
               aria-current={active ? "page" : undefined}
-              className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-brand" : "text-muted")}
+              className={cn(
+                "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                active ? "text-brand" : "text-muted",
+              )}
             >
               <Icon />
               {it.label}

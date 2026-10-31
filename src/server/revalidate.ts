@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { paths } from "@/lib/paths";
 
 /** Which pages to refresh after a change. Grouped by what changed, not by which page asked. */
@@ -10,7 +10,8 @@ export const refresh = {
   },
   /** Game results changed: stats, leaderboard and member records. */
   results() {
-    revalidateTag("results");
+    // updateTag (not revalidateTag): the organiser sees the new numbers immediately, not after a background refresh.
+    updateTag("results");
     revalidatePath(paths.stats);
   },
   money() {

@@ -12,5 +12,5 @@ vi.mock("@/server/auth", () => ({
 }));
 
 // Cache invalidation needs a running Next.js server; in tests it is a no-op.
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
 vi.mock("server-only", () => ({}));

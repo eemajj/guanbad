@@ -66,8 +66,19 @@ test("organiser and member go through a full session", async ({ browser }) => {
   // Close the session and issue bills
   await org.goto(sessionUrl);
   await org.getByRole("button", { name: "จบรอบ & ออกบิล" }).click();
-  await org.getByRole("button", { name: "ยืนยันจบรอบและออกบิล" }).click();
+  await org.getByRole("button", { name: "ยืนยันจบรอบ" }).click();
   await expectToast(org, "ออกบิลให้ทุกคนแล้ว");
+
+  // Organiser sends every unpaid bill to the LINE group in one message
+  await org.goto(`${sessionUrl}?tab=bills`);
+  await org.evaluate(() => {
+    const w = window as unknown as { __shared?: string };
+    navigator.share = async (d?: ShareData) => void (w.__shared = d?.text);
+  });
+  await org.getByRole("button", { name: "ส่งบิลไป LINE" }).click();
+  const shared = await org.evaluate(() => (window as unknown as { __shared?: string }).__shared ?? "");
+  expect(shared).toContain("บิลตีแบด");
+  expect(shared.match(/\/pay\/\w+/g)).toHaveLength(5);
 
   // Friend pays with the PromptPay QR and reports the transfer
   await friend.goto(sessionUrl);

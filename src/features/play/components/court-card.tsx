@@ -6,7 +6,7 @@ import { ActionButton } from "@/ui/action";
 import { Badge } from "@/ui/badge";
 import { Dialog } from "@/ui/dialog";
 import { teamOf, type MatchWithPlayers, type SessionDetail } from "@/features/sessions/state";
-import { cancelMatch, fillCourts, finishMatch, substitutePlayer } from "../actions";
+import { cancelMatch, fillCourts, finishMatch, substitutePlayer, undoFinishMatch } from "../actions";
 import { namesFor } from "./names";
 import { ResultForm } from "./result-form";
 
@@ -69,7 +69,13 @@ export function CourtCard({ s, court, match: m, nextInQueue, isAdmin }: Props) {
             title={`จบเกม คอร์ท ${court.name}`}
             description={`เล่นไป ${minutesSince(m.startedAt)} นาที`}
           >
-            <ResultForm action={finishMatch.bind(null, m.id)} teamA={pair(a)} teamB={pair(b)} submitLabel="บันทึก แล้วจัดคู่ถัดไป" />
+            <ResultForm
+              action={finishMatch.bind(null, m.id)}
+              undo={undoFinishMatch.bind(null, m.id)}
+              teamA={pair(a)}
+              teamB={pair(b)}
+              submitLabel="บันทึก แล้วจัดคู่ถัดไป"
+            />
           </Dialog>
           <Dialog
             key={`sub-${m.id}`}

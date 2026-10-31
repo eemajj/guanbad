@@ -17,7 +17,9 @@
   --accent: 217 131 26;
   --accent-soft: 251 239 220;
   --accent-ink: 42 24 4;
-  --ok: 27 127 71;
+  /* amber readable as text on light backgrounds (contrast ≥ 4.5:1) */
+  --accent-text: 138 76 6;
+  --ok: 21 108 59;
   --ok-soft: 224 243 232;
   --warn: 147 96 15;
   --warn-soft: 251 240 217;
@@ -43,6 +45,7 @@
     --accent: 239 162 67;
     --accent-soft: 58 42 20;
     --accent-ink: 29 18 5;
+    --accent-text: 243 184 102;
     --ok: 82 194 135;
     --ok-soft: 23 53 39;
     --warn: 229 176 79;

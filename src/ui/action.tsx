@@ -9,10 +9,26 @@ import { useCloseDialog } from "@/ui/dialog";
 
 function useResult() {
   const router = useRouter();
-  return (r: ActionResult | undefined, onSuccess?: () => void) => {
+  return (r: ActionResult | undefined, onSuccess?: () => void, undo?: () => Promise<ActionResult>) => {
     if (!r) return;
     if (r.ok) {
-      if (r.message) toast.success(r.message);
+      if (r.message || undo) {
+        toast.success(r.message ?? "เรียบร้อย", {
+          duration: undo ? 10_000 : undefined,
+          // Mistakes at the court are taken back here, instead of asking "are you sure?" first.
+          action: undo
+            ? {
+                label: "ย้อนกลับ",
+                onClick: async () => {
+                  const back = await undo();
+                  if (back.ok) toast.success(back.message ?? "ย้อนกลับแล้ว");
+                  else toast.error(back.error);
+                  router.refresh();
+                },
+              }
+            : undefined,
+        });
+      }
       onSuccess?.();
       if (r.redirect) router.push(r.redirect);
     } else {
@@ -36,6 +52,7 @@ export function ActionForm({
   className,
   resetOnSuccess,
   closeDialog,
+  undo,
 }: {
   action: (form: FormData) => Promise<ActionResult>;
   children: ReactNode;
@@ -43,6 +60,8 @@ export function ActionForm({
   resetOnSuccess?: boolean;
   /** Close the surrounding <Dialog> after success */
   closeDialog?: boolean;
+  /** Offer "ย้อนกลับ" in the success message for 10 seconds. */
+  undo?: () => Promise<ActionResult>;
 }) {
   const handle = useResult();
   const close = useCloseDialog();
@@ -58,10 +77,14 @@ export function ActionForm({
         const data = new FormData(form);
         start(async () => {
           const r = await action(data);
-          handle(r, () => {
-            if (resetOnSuccess) form.reset();
-            if (closeDialog) close();
-          });
+          handle(
+            r,
+            () => {
+              if (resetOnSuccess) form.reset();
+              if (closeDialog) close();
+            },
+            undo,
+          );
         });
       }}
     >
@@ -104,6 +127,8 @@ export function ActionButton({
   className,
   closeDialog,
   optimistic,
+  undo,
+  disabled,
 }: {
   action: () => Promise<ActionResult>;
   children: ReactNode;
@@ -114,6 +139,9 @@ export function ActionButton({
   closeDialog?: boolean;
   /** Shown as soon as the button is pressed, e.g. "✓ ได้รับแล้ว". Reverts if the server refuses. */
   optimistic?: ReactNode;
+  /** Offer "ย้อนกลับ" in the success message for 10 seconds. */
+  undo?: () => Promise<ActionResult>;
+  disabled?: boolean;
 }) {
   const handle = useResult();
   const close = useCloseDialog();
@@ -122,7 +150,8 @@ export function ActionButton({
   const [arming, setArming] = useState(false);
   const fire = () =>
     start(async () => {
-      handle(await action(), closeDialog ? close : undefined);
+      const r = await action();
+      handle(r, closeDialog ? close : undefined, undo);
       setArming(false);
     });
   if (confirm && arming) {
@@ -142,7 +171,7 @@ export function ActionButton({
       variant={pending && optimistic ? "secondary" : variant}
       size={size}
       className={className}
-      disabled={pending}
+      disabled={pending || disabled}
       aria-busy={pending}
       onClick={() => (confirm ? setArming(true) : fire())}
     >

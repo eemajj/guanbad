@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getViewer } from "@/server/viewer";
 import { baht, bahtExact, thaiDate } from "@/lib/format";
 import { getSettings } from "@/features/settings/queries";
-import { reportPaid, setChargeStatus } from "@/features/billing/actions";
+import { reportPaid, setChargeStatus, undoChargeStatus } from "@/features/billing/actions";
 import { promptpayPayload } from "@/domain/promptpay";
 import { ActionButton } from "@/ui/action";
 import { ChargeStatusBadge } from "@/features/billing/components/charge-status";
@@ -68,7 +68,12 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
       {viewer?.isAdmin && (
         <div className="flex flex-wrap justify-center gap-2 border-t border-line pt-4">
           {open && (
-            <ActionButton action={setChargeStatus.bind(null, charge.id, "PAID")} optimistic="✓ ได้รับแล้ว" variant="primary">
+            <ActionButton
+              action={setChargeStatus.bind(null, charge.id, "PAID")}
+              undo={undoChargeStatus.bind(null, charge.id)}
+              optimistic="✓ ได้รับแล้ว"
+              variant="primary"
+            >
               ได้รับเงินแล้ว
             </ActionButton>
           )}

@@ -1,26 +1,35 @@
 import { paths } from "@/lib/paths";
-import { type SessionDetail } from "@/features/sessions/state";
-import { closeSession, reopenSession, startSession } from "@/features/sessions/actions";
+import { thaiDate } from "@/lib/format";
 import { ActionButton } from "@/ui/action";
 import { LinkButton } from "@/ui/button";
+import { ShareToLine } from "@/ui/share";
+import { reopenSession } from "../actions";
+import type { SessionDetail } from "../state";
 
-/** Organiser buttons in the session header: the next step of the session. */
+/** Header buttons for organisers. The next step of the session lives in the bottom action bar. */
 export function AdminActions({ s }: { s: SessionDetail }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {s.status !== "CLOSED" && <LinkButton href={paths.editSession(s.id)}>แก้ไขรอบ</LinkButton>}
-      {s.status === "OPEN" && (
-        <ActionButton action={startSession.bind(null, s.id)} variant="primary">
-          เริ่มตี
-        </ActionButton>
+      {s.status !== "CLOSED" && (
+        <ShareToLine
+          path={paths.session(s.id)}
+          text={`ลงชื่อตีแบด ${s.venue} ${thaiDate(s.date)} ${s.startTime}–${s.endTime} น.`}
+          label="ชวนลงชื่อ"
+          size="sm"
+        />
       )}
       {s.status === "LIVE" && (
-        <ActionButton action={closeSession.bind(null, s.id)} variant="accent" confirm="ยืนยันจบรอบและออกบิล">
-          จบรอบ & ออกบิล
-        </ActionButton>
+        <LinkButton href={paths.board(s.id)} size="sm" target="_blank">
+          จอใหญ่
+        </LinkButton>
+      )}
+      {s.status !== "CLOSED" && (
+        <LinkButton href={paths.editSession(s.id)} size="sm">
+          แก้ไขรอบ
+        </LinkButton>
       )}
       {s.status === "CLOSED" && (
-        <ActionButton action={reopenSession.bind(null, s.id)} confirm="ยืนยันเปิดรอบอีกครั้ง">
+        <ActionButton action={reopenSession.bind(null, s.id)} size="sm" confirm="ยืนยันเปิดรอบอีกครั้ง">
           เปิดรอบอีกครั้ง
         </ActionButton>
       )}

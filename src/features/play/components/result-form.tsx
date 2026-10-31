@@ -20,6 +20,7 @@ export function ResultForm({
   initial = { winner: null, scoreA: null, scoreB: null, shuttles: 1 },
   submitLabel,
   shuttlesLocked,
+  undo,
 }: {
   action: (f: FormData) => Promise<ActionResult>;
   teamA: string;
@@ -27,6 +28,7 @@ export function ResultForm({
   initial?: Initial;
   submitLabel: string;
   shuttlesLocked?: boolean;
+  undo?: () => Promise<ActionResult>;
 }) {
   const [picked, setPicked] = useState<Side | null>(initial.winner);
   const [a, setA] = useState(initial.scoreA?.toString() ?? "");
@@ -47,7 +49,7 @@ export function ResultForm({
       : "ยังไม่มีผล เกมนี้จะไม่นับชนะ/แพ้ แก้ทีหลังได้";
 
   return (
-    <ActionForm action={action} closeDialog className="flex flex-col gap-5">
+    <ActionForm action={action} closeDialog undo={undo} className="flex flex-col gap-5">
       <input type="hidden" name="winner" value={hasScore ? "" : (picked ?? "")} />
       <input type="hidden" name="shuttles" value={shuttles} />
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/server/db";
-import { cancelMatch, fillCourts, finishMatch, updateMatchResult } from "@/features/play/actions";
+import { cancelMatch, fillCourts, finishMatch, undoFinishMatch, updateMatchResult } from "@/features/play/actions";
+import { setChargeStatus, undoChargeStatus } from "@/features/billing/actions";
 import { closeSession, startSession } from "@/features/sessions/actions";
 import { actAs, makeMembers, makeSession, makeUser, playingMatches } from "./factory";
 import { form } from "./helpers";
@@ -71,5 +72,50 @@ describe("fillCourts concurrency", () => {
     expect(games).toHaveLength(3);
     expect(new Set(onCourt).size).toBe(onCourt.length);
     expect(new Set(games.map((g) => g.courtId)).size).toBe(3);
+  });
+});
+
+describe("undoFinishMatch", () => {
+  it("puts the game back on court, clears the result and restores the queue", async () => {
+    const { s, m } = await liveSessionWithGame(5, 1);
+    const queueBefore = await prisma.participant.findMany({ where: { sessionId: s.id }, orderBy: { memberId: "asc" } });
+    await finishMatch(m.id, form({ winner: "", scoreA: "21", scoreB: "19", shuttles: "2" }));
+
+    expect(await undoFinishMatch(m.id)).toMatchObject({ ok: true });
+    const after = await prisma.match.findUniqueOrThrow({ where: { id: m.id } });
+    expect(after).toMatchObject({ status: "PLAYING", winner: null, scoreA: null, shuttles: 0, endedAt: null });
+    const queueAfter = await prisma.participant.findMany({ where: { sessionId: s.id }, orderBy: { memberId: "asc" } });
+    expect(queueAfter.map((p) => p.queuedAt.getTime())).toEqual(queueBefore.map((p) => p.queuedAt.getTime()));
+  });
+
+  it("also cancels the next game the system put on the same court", async () => {
+    const { s, m } = await liveSessionWithGame(8, 1);
+    await finishMatch(m.id, form({ winner: "A", scoreA: "", scoreB: "", shuttles: "1" }));
+    const [next] = await playingMatches(s.id);
+    expect(next.id).not.toBe(m.id);
+    expect(await undoFinishMatch(m.id)).toMatchObject({ ok: true });
+    expect(await prisma.match.count({ where: { id: next.id } })).toBe(0);
+    expect((await playingMatches(s.id)).map((g) => g.id)).toEqual([m.id]);
+  });
+
+  it("is refused once the next game has also finished", async () => {
+    const { s, m } = await liveSessionWithGame(8, 1);
+    await finishMatch(m.id, form({ winner: "A", scoreA: "", scoreB: "", shuttles: "1" }));
+    const [next] = await playingMatches(s.id);
+    await finishMatch(next.id, form({ winner: "B", scoreA: "", scoreB: "", shuttles: "1" }));
+    expect(await undoFinishMatch(m.id)).toMatchObject({ ok: false });
+  });
+});
+
+describe("undoChargeStatus", () => {
+  it("returns a bill to its previous status", async () => {
+    const payer = await makeUser("MEMBER");
+    const s = await makeSession([payer.member!.id]);
+    const c = await prisma.charge.create({
+      data: { sessionId: s.id, memberId: payer.member!.id, courtFee: 100, shuttleFee: 0, shuttleCount: 0, total: 100, status: "REPORTED" },
+    });
+    await setChargeStatus(c.id, "PAID");
+    expect(await undoChargeStatus(c.id)).toMatchObject({ ok: true });
+    expect((await prisma.charge.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("REPORTED");
   });
 });

@@ -2,7 +2,7 @@ import { paths } from "@/lib/paths";
 import Link from "next/link";
 import { baht, thaiDate } from "@/lib/format";
 import type { outstandingCharges } from "@/features/billing/queries";
-import { setChargeStatus } from "@/features/billing/actions";
+import { setChargeStatus, undoChargeStatus } from "@/features/billing/actions";
 import { ActionButton } from "@/ui/action";
 import { ChargeStatusBadge } from "@/features/billing/components/charge-status";
 import { Table, TBody, THead, Td, Th } from "@/ui/table";
@@ -59,6 +59,7 @@ export function OutstandingCard({ owed }: { owed: Owed }) {
                     </Link>
                     <ActionButton
                       action={setChargeStatus.bind(null, c.id, "PAID")}
+                      undo={undoChargeStatus.bind(null, c.id)}
                       optimistic="✓ ได้รับแล้ว"
                       size="sm"
                       variant={c.status === "REPORTED" ? "primary" : "secondary"}

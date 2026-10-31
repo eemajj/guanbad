@@ -1,7 +1,7 @@
 import { paths } from "@/lib/paths";
 import Link from "next/link";
 import type { SessionDetail, SessionState } from "@/features/sessions/state";
-import { setChargeStatus } from "@/features/billing/actions";
+import { setChargeStatus, undoChargeStatus } from "@/features/billing/actions";
 import { baht, bahtExact } from "@/lib/format";
 import { ActionButton } from "@/ui/action";
 import { ChargeStatusBadge } from "./charge-status";
@@ -9,6 +9,8 @@ import { Table, TBody, THead, Td, Th } from "@/ui/table";
 import { Card, CardBody, CardHeader } from "@/ui/card";
 import { Stat } from "@/ui/stat";
 import { buttonClass } from "@/ui/button";
+import { ShareToLine } from "@/ui/share";
+import { thaiDate } from "@/lib/format";
 
 export function BillsTab({ s, st, isAdmin, myMemberId }: { s: SessionDetail; st: SessionState; isAdmin: boolean; myMemberId?: string }) {
   const closed = s.status === "CLOSED";
@@ -20,6 +22,9 @@ export function BillsTab({ s, st, isAdmin, myMemberId }: { s: SessionDetail; st:
   const billed = closed ? s.charges.reduce((sum, c) => sum + (c.status === "WAIVED" ? 0 : c.total), 0) : st.fees.billed;
   const received = s.charges.filter((c) => c.status === "PAID").reduce((sum, c) => sum + c.total, 0);
   const pct = billed ? Math.round((received / billed) * 100) : 0;
+  const unpaid = rows.flatMap(({ member, charge }) =>
+    charge?.status === "UNPAID" ? [{ id: charge.id, nickname: member.nickname, total: charge.total }] : [],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,6 +61,16 @@ export function BillsTab({ s, st, isAdmin, myMemberId }: { s: SessionDetail; st:
             s.feeMode === "SPLIT"
               ? `ค่าคอร์ทหารเท่ากัน ${rows.length} คน + ค่าลูกตามเกมที่เล่น`
               : `ค่าคอร์ทคนละ ${baht(s.flatFee)} + ค่าลูกตามเกมที่เล่น`
+          }
+          action={
+            isAdmin && closed && unpaid.length > 0 ? (
+              <ShareToLine
+                text={`บิลตีแบด ${s.venue} ${thaiDate(s.date)} กดลิงก์ของตัวเองแล้วสแกน QR จ่ายได้เลย`}
+                links={unpaid.map((c) => ({ label: `${c.nickname} ${baht(c.total)}`, path: paths.pay(c.id) }))}
+                label="ส่งบิลไป LINE"
+                size="sm"
+              />
+            ) : undefined
           }
         />
         <Table>
@@ -112,6 +127,7 @@ export function BillsTab({ s, st, isAdmin, myMemberId }: { s: SessionDetail; st:
                         {isAdmin && (charge.status === "UNPAID" || charge.status === "REPORTED") && (
                           <ActionButton
                             action={setChargeStatus.bind(null, charge.id, "PAID")}
+                            undo={undoChargeStatus.bind(null, charge.id)}
                             optimistic="✓ ได้รับแล้ว"
                             size="sm"
                             variant={charge.status === "REPORTED" ? "primary" : "secondary"}

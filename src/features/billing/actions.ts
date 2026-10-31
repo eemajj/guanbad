@@ -79,3 +79,19 @@ export async function setChargeStatus(chargeId: string, status: ChargeStatus) {
     return { ok: true, message: MESSAGE[status] };
   });
 }
+
+/** ย้อนการเปลี่ยนสถานะบิลล่าสุดของหัวก๊วน (เช่น กด “ได้รับแล้ว” ผิดคน) กลับเป็นสถานะก่อนหน้า */
+export async function undoChargeStatus(chargeId: string) {
+  return asAdmin(async () => {
+    const last = await prisma.activity.findFirst({
+      where: { type: { in: ["charge.paid", "charge.waived", "charge.unpaid"] }, data: { path: ["chargeId"], equals: chargeId } },
+      orderBy: { at: "desc" },
+    });
+    const data = last?.data as { before?: ChargeStatus; after?: ChargeStatus } | null;
+    const c = await loadCharge(chargeId);
+    if (!data?.before || data.after !== c.status) throw new ActionError("สถานะบิลเปลี่ยนไปแล้ว ย้อนกลับไม่ได้");
+    return setChargeStatus(chargeId, data.before).then((r) =>
+      r.ok ? { ok: true as const, message: `ย้อนกลับเป็น “${CHARGE_STATUS[data.before!]}” แล้ว` } : r,
+    );
+  });
+}

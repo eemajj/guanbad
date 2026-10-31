@@ -63,7 +63,7 @@ export function LeaderboardCard({ board, min, myId, isAdmin }: { board: Board; m
           <TBody>
             {ranked.map(({ memberId, record: r }, i) => (
               <tr key={memberId} className={memberId === myId ? "bg-brand-soft/50" : ""}>
-                <Td num className={cn("text-lg font-bold", i < 3 ? "text-accent" : "text-muted")}>
+                <Td num className={cn("text-lg font-bold", i < 3 ? "text-accent-text" : "text-muted")}>
                   {i + 1}
                 </Td>
                 <Td>
