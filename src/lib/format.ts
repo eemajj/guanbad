@@ -1,4 +1,4 @@
-const TZ = "Asia/Bangkok";
+export const TZ = "Asia/Bangkok";
 
 /** satang → "฿1,234" */
 export const baht = (satang: number) => "฿" + Math.round(satang / 100).toLocaleString("th-TH");

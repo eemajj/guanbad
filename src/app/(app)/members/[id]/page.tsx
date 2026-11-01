@@ -1,11 +1,12 @@
-import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/viewer";
-import { thaiDate } from "@/lib/format";
-import { createClaimLink, setMemberActive, setUserRole, updateMember } from "@/server/actions/members";
-import { ActionButton } from "@/components/action";
-import { CopyButton } from "@/components/copy-button";
+import { TZ, thaiDate } from "@/lib/format";
+import { setMemberActive, setMemberPin, setMemberRole, updateMember } from "@/server/actions/members";
+import { ADMIN_PIN_MIN, PIN_MAX, lockState, minPinLength } from "@/domain/pin";
+import { ActionButton, ActionForm, SubmitButton } from "@/components/action";
+import { Field, Input } from "@/components/ui/field";
 import { LevelBadge } from "@/components/level";
 import { MemberForm } from "@/components/member-form";
 import { MemberHistory } from "@/components/member-history";
@@ -18,8 +19,9 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const m = await prisma.member.findUnique({ where: { id }, include: { user: true } });
   if (!m) notFound();
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  const isAdmin = m.user?.role === "ADMIN";
+  const pinMin = minPinLength(isAdmin);
+  const lock = lockState(m.pinFailures, m.pinLockedUntil, new Date());
 
   return (
     <>
@@ -39,30 +41,39 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
         </Card>
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader title="บัญชี LINE" />
+            <CardHeader title="PIN เข้าระบบ" description={`${m.nickname} เลือกชื่อตัวเองที่หน้าเข้าสู่ระบบ แล้วใส่ PIN นี้`} />
             <CardBody className="flex flex-col gap-3 text-sm">
-              {m.user ? (
-                <>
-                  <p>ผูกกับบัญชี <b>{m.user.name}</b> แล้ว · {m.user.role === "ADMIN" ? "หัวก๊วน" : "สมาชิก"}</p>
-                  {m.user.id !== viewer.user.id &&
-                    (m.user.role === "ADMIN" ? (
-                      <ActionButton action={setUserRole.bind(null, m.user.id, "MEMBER")} confirm="ยืนยันถอดสิทธิ์หัวก๊วน">ถอดสิทธิ์หัวก๊วน</ActionButton>
-                    ) : (
-                      <ActionButton action={setUserRole.bind(null, m.user.id, "ADMIN")} confirm="ยืนยันให้เป็นหัวก๊วน">ตั้งเป็นหัวก๊วนร่วม</ActionButton>
-                    ))}
-                </>
-              ) : m.claimToken ? (
-                <>
-                  <p className="text-muted">ส่งลิงก์นี้ให้ {m.nickname} ทาง LINE เปิดแล้วล็อกอิน ระบบจะผูกชื่อนี้กับบัญชีของเขา ประวัติและยอดค้างย้ายตามไปด้วย</p>
-                  <code className="break-all rounded-lg bg-surface-2 px-3 py-2 text-xs">{`${origin}/claim/${m.claimToken}`}</code>
-                  <CopyButton text={`${origin}/claim/${m.claimToken}`} label="คัดลอกลิงก์" />
-                </>
+              <p>
+                {!m.pinHash ? (
+                  <Badge tone="warn">ยังไม่ได้ตั้ง PIN · เข้าระบบไม่ได้</Badge>
+                ) : lock.kind === "hard" ? (
+                  <Badge tone="danger">ถูกล็อก (ใส่ผิดหลายครั้ง) · ตั้ง PIN ใหม่เพื่อปลดล็อก</Badge>
+                ) : lock.kind === "wait" ? (
+                  <Badge tone="warn">ล็อกชั่วคราวถึง {lock.until.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: TZ })} น.</Badge>
+                ) : (
+                  <Badge tone="ok">ตั้ง PIN แล้ว ({m.pinLength} หลัก)</Badge>
+                )}
+              </p>
+              {m.id === viewer.member.id ? (
+                <Link href="/me" className="text-brand underline">เปลี่ยน PIN ของตัวเองที่หน้า “ของฉัน”</Link>
               ) : (
-                <>
-                  <p className="text-muted">ยังไม่ได้ผูกบัญชี {m.nickname} จะลงชื่อหรือแจ้งโอนเองไม่ได้ จนกว่าจะผูกบัญชี</p>
-                  <ActionButton action={createClaimLink.bind(null, m.id)} variant="primary">สร้างลิงก์ผูกบัญชี</ActionButton>
-                </>
+              <ActionForm action={setMemberPin.bind(null, m.id)} resetOnSuccess className="flex items-end gap-2">
+                <Field label={m.pinHash ? "ตั้ง PIN ใหม่" : "ตั้ง PIN"} hint={`${pinMin}–${PIN_MAX} หลัก ห้ามเลขซ้ำ/เรียงกัน · ทุกเครื่องที่ล็อกอินค้างจะหลุด`} className="flex-1">
+                  <Input name="pin" inputMode="numeric" pattern="[0-9]*" autoComplete="off" minLength={pinMin} maxLength={PIN_MAX} required />
+                </Field>
+                <SubmitButton>บันทึก PIN</SubmitButton>
+              </ActionForm>
               )}
+              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                <span>{isAdmin ? "หัวก๊วน" : "สมาชิก"}</span>
+                {m.id !== viewer.member.id &&
+                  (isAdmin ? (
+                    <ActionButton action={setMemberRole.bind(null, m.id, "MEMBER")} confirm="ยืนยันถอดสิทธิ์หัวก๊วน">ถอดสิทธิ์หัวก๊วน</ActionButton>
+                  ) : (
+                    <ActionButton action={setMemberRole.bind(null, m.id, "ADMIN")} confirm="ยืนยันให้เป็นหัวก๊วน">ตั้งเป็นหัวก๊วนร่วม</ActionButton>
+                  ))}
+              </div>
+              {!isAdmin && <p className="text-xs text-muted">หัวก๊วนต้องมี PIN {ADMIN_PIN_MIN} หลักขึ้นไป ตั้ง PIN ให้ก่อนแล้วค่อยกดตั้งเป็นหัวก๊วน</p>}
             </CardBody>
           </Card>
           <Card>

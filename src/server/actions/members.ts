@@ -1,13 +1,15 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { Level } from "@prisma/client";
+import type { Level, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { run } from "@/lib/action";
 import { ActionError, requireAdminAction, requireViewerAction } from "@/lib/viewer";
 import { isLevel } from "@/domain/levels";
+import { ADMIN_PIN_MIN, checkNewPin } from "@/domain/pin";
+import { checkMemberPin, newPinData } from "@/server/pin";
+import { usableAdminWhere } from "@/server/setup";
 
 const memberSchema = z.object({
   nickname: z.string().trim().min(1, "กรุณาใส่ชื่อเล่น").max(30, "ชื่อเล่นยาวเกินไป"),
@@ -62,61 +64,91 @@ export async function updateMember(id: string, form: FormData) {
 export async function setMemberActive(id: string, active: boolean) {
   return run(async () => {
     await requireAdminAction();
-    await prisma.member.update({ where: { id }, data: { active } });
+    if (active) {
+      const m = await prisma.member.findUnique({ where: { id } });
+      if (m) await assertUniqueNickname(m.nickname, id); // two identical names on the login screen would be ambiguous
+    }
+    await prisma.$transaction(async (tx) => {
+      await lockRoles(tx);
+      if (!active && (await usableAdmins(tx, id)) === 0) throw new ActionError("ต้องมีหัวก๊วนที่เข้าระบบได้อย่างน้อย 1 คน");
+      await tx.member.update({ where: { id }, data: { active } });
+    });
     revalidatePath(`/members/${id}`);
     revalidatePath("/members");
     return { ok: true, message: active ? "เปิดใช้งานสมาชิกแล้ว" : "ย้ายไปสมาชิกที่ไม่ได้มาแล้ว" };
   });
 }
 
-/** สร้างลิงก์ให้สมาชิกที่หัวก๊วนเพิ่มไว้ มาผูกกับบัญชี LINE ของตัวเอง */
-export async function createClaimLink(id: string) {
-  return run(async () => {
-    await requireAdminAction();
-    const m = await prisma.member.findUnique({ where: { id } });
-    if (!m) throw new ActionError("ไม่พบสมาชิก");
-    if (m.userId) throw new ActionError("สมาชิกคนนี้ผูกบัญชีแล้ว");
-    await prisma.member.update({ where: { id }, data: { claimToken: randomBytes(12).toString("base64url") } });
-    revalidatePath(`/members/${id}`);
-    return { ok: true, message: "สร้างลิงก์แล้ว" };
-  });
-}
+type Tx = Prisma.TransactionClient;
 
-export async function claimMember(token: string) {
-  return run(async () => {
-    const viewer = await requireViewerAction();
-    if (viewer.member) throw new ActionError(`บัญชีนี้เป็น “${viewer.member.nickname}” อยู่แล้ว`);
-    const m = await prisma.member.findUnique({ where: { claimToken: token } });
-    if (!m || m.userId) throw new ActionError("ลิงก์นี้ใช้ไม่ได้แล้ว ขอลิงก์ใหม่จากหัวก๊วน");
-    await prisma.member.update({ where: { id: m.id }, data: { userId: viewer.user.id, claimToken: null } });
-    revalidatePath("/");
-    return { ok: true, message: `ยินดีต้อนรับ ${m.nickname}`, redirect: "/" };
-  });
-}
+/** Serialise role and PIN changes, so two organisers acting at once can't leave the club with no usable admin. */
+const lockRoles = (tx: Tx) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('user-roles'))`;
 
-/** ผู้ใช้ใหม่ที่ล็อกอินครั้งแรก สร้างโปรไฟล์สมาชิกของตัวเอง */
-export async function createMyProfile(form: FormData) {
-  return run(async () => {
-    const viewer = await requireViewerAction();
-    if (viewer.member) return { ok: true, redirect: "/" };
-    const data = parse(form);
-    await assertUniqueNickname(data.nickname);
-    await prisma.member.create({ data: { ...data, note: null, userId: viewer.user.id } });
-    revalidatePath("/");
-    return { ok: true, message: `ยินดีต้อนรับ ${data.nickname}`, redirect: "/" };
-  });
-}
+const usableAdmins = (tx: Tx, exceptMemberId?: string) => tx.user.count({ where: usableAdminWhere(exceptMemberId) });
 
-export async function setUserRole(userId: string, role: "ADMIN" | "MEMBER") {
+/** หัวก๊วนตั้ง PIN ให้สมาชิก (ครั้งแรก หรือเมื่อลืม/ถูกล็อก) ทุกเครื่องที่ล็อกอินค้างไว้จะหลุด */
+export async function setMemberPin(memberId: string, form: FormData) {
   return run(async () => {
     const viewer = await requireAdminAction();
-    if (userId === viewer.user.id && role === "MEMBER") {
-      const admins = await prisma.user.count({ where: { role: "ADMIN" } });
-      if (admins <= 1) throw new ActionError("ต้องมีหัวก๊วนอย่างน้อย 1 คน");
-    }
-    await prisma.user.update({ where: { id: userId }, data: { role } });
+    if (memberId === viewer.member.id) throw new ActionError("เปลี่ยน PIN ของตัวเองที่หน้า “ของฉัน”");
+    const pin = String(form.get("pin") ?? "").trim();
+    const data = await newPinData(pin);
+    const nickname = await prisma.$transaction(async (tx) => {
+      await lockRoles(tx); // so a promotion can't slip in between the length check and the write
+      const m = await tx.member.findUnique({ where: { id: memberId }, include: { user: true } });
+      if (!m) throw new ActionError("ไม่พบสมาชิก");
+      const problem = checkNewPin(pin, m.user?.role === "ADMIN");
+      if (problem) throw new ActionError(problem);
+      await tx.member.update({ where: { id: memberId }, data });
+      return m.nickname;
+    });
+    revalidatePath(`/members/${memberId}`);
+    return { ok: true, message: `ตั้ง PIN ให้ ${nickname} แล้ว ส่งให้เขาทางแชทส่วนตัว` };
+  });
+}
+
+/** สมาชิกเปลี่ยน PIN ของตัวเอง ต้องใส่ PIN เดิมก่อน แล้วเข้าระบบใหม่ด้วย PIN ใหม่ */
+export async function changeMyPin(form: FormData) {
+  return run(async () => {
+    const viewer = await requireViewerAction();
+    const current = String(form.get("current") ?? "");
+    const pin = String(form.get("pin") ?? "").trim();
+    if (pin !== String(form.get("confirm") ?? "").trim()) throw new ActionError("PIN ใหม่สองช่องไม่ตรงกัน");
+    const check = await checkMemberPin(viewer.member.id, current, null);
+    if (!check.ok) throw new ActionError(check.reason === "wrong" ? "PIN เดิมไม่ถูกต้อง" : "PIN ถูกล็อกชั่วคราว ลองใหม่ภายหลัง หรือให้หัวก๊วนตั้งให้");
+    const data = await newPinData(pin);
+    await prisma.$transaction(async (tx) => {
+      await lockRoles(tx); // re-read the role under the lock, so a promotion can't leave an admin with a short PIN
+      const me = await tx.user.findUniqueOrThrow({ where: { id: viewer.user.id } });
+      const problem = checkNewPin(pin, me.role === "ADMIN");
+      if (problem) throw new ActionError(problem);
+      await tx.member.update({ where: { id: viewer.member.id }, data });
+    });
+    return { ok: true, message: "เปลี่ยน PIN แล้ว เข้าสู่ระบบใหม่ด้วย PIN ใหม่", redirect: "/login" };
+  });
+}
+
+export async function setMemberRole(memberId: string, role: "ADMIN" | "MEMBER") {
+  return run(async () => {
+    await requireAdminAction();
+    await prisma.$transaction(async (tx) => {
+      await lockRoles(tx);
+      const m = await tx.member.findUnique({ where: { id: memberId }, include: { user: true } });
+      if (!m) throw new ActionError("ไม่พบสมาชิก");
+      if (role === "ADMIN") {
+        if (!m.pinHash || (m.pinLength ?? 0) < ADMIN_PIN_MIN) throw new ActionError(`ตั้ง PIN ${ADMIN_PIN_MIN} หลักขึ้นไปให้ ${m.nickname} ก่อน แล้วค่อยตั้งเป็นหัวก๊วน`);
+        const userId = m.userId ?? (await tx.user.create({ data: { name: m.nickname } })).id;
+        await tx.user.update({ where: { id: userId }, data: { role } });
+        if (!m.userId) await tx.member.update({ where: { id: m.id }, data: { userId } });
+        return;
+      }
+      if (!m.user) return;
+      if (m.user.role === "ADMIN" && (await usableAdmins(tx, m.id)) === 0) throw new ActionError("ต้องมีหัวก๊วนที่เข้าระบบได้อย่างน้อย 1 คน");
+      await tx.user.update({ where: { id: m.user.id }, data: { role } });
+    });
     revalidatePath("/settings");
     revalidatePath("/members");
+    revalidatePath(`/members/${memberId}`);
     return { ok: true, message: role === "ADMIN" ? "ตั้งเป็นหัวก๊วนแล้ว" : "ตั้งเป็นสมาชิกแล้ว" };
   });
 }

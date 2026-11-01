@@ -91,7 +91,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
             </table>
           </div>
         ) : (
-          <EmptyState title={q || level ? "ไม่พบสมาชิกตามเงื่อนไข" : "ยังไม่มีสมาชิก"} description="เพิ่มสมาชิกเอง หรือให้เพื่อนล็อกอินด้วย LINE แล้วสร้างโปรไฟล์" />
+          <EmptyState title={q || level ? "ไม่พบสมาชิกตามเงื่อนไข" : "ยังไม่มีสมาชิก"} description="เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคนเพื่อเข้าระบบ" />
         )}
       </Card>
     </>

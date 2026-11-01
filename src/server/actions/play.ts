@@ -197,10 +197,17 @@ export async function updateMatchResult(matchId: string, form: FormData) {
 export async function cancelMatch(matchId: string) {
   return run(async () => {
     await requireAdminAction();
-    const m = await prisma.match.findUnique({ where: { id: matchId } });
-    if (!m) throw new ActionError("ไม่พบเกมนี้");
-    await prisma.match.update({ where: { id: matchId }, data: { status: "CANCELLED", endedAt: new Date() } });
-    refresh(m.sessionId);
+    const sessionId = await prisma.$transaction(async (tx) => {
+      const m = await tx.match.findUnique({ where: { id: matchId } });
+      if (!m) throw new ActionError("ไม่พบเกมนี้");
+      await lockSession(tx, m.sessionId);
+      // Re-read under the lock: another organiser may have just finished this game from a fresher screen.
+      const fresh = await tx.match.findUnique({ where: { id: matchId } });
+      if (fresh?.status !== "PLAYING") throw new ActionError("เกมนี้จบไปแล้ว ยกเลิกไม่ได้ (ลองรีเฟรชหน้า)");
+      await tx.match.update({ where: { id: matchId }, data: { status: "CANCELLED", endedAt: new Date() } });
+      return m.sessionId;
+    });
+    refresh(sessionId);
     return { ok: true, message: "ยกเลิกเกมแล้ว (ไม่นับ ไม่คิดค่าลูก)" };
   });
 }
@@ -210,9 +217,12 @@ export async function substitutePlayer(matchId: string, memberId: string) {
   return run(async () => {
     await requireAdminAction();
     const out = await prisma.$transaction(async (tx) => {
+      const found = await tx.match.findUnique({ where: { id: matchId }, select: { sessionId: true } });
+      if (!found) throw new ActionError("เกมนี้จบไปแล้ว");
+      await lockSession(tx, found.sessionId);
+      // Check status only after taking the lock, so a game finished a moment ago can't be rewritten.
       const m = await tx.match.findUnique({ where: { id: matchId }, include: { players: true } });
       if (!m || m.status !== "PLAYING") throw new ActionError("เกมนี้จบไปแล้ว");
-      await lockSession(tx, m.sessionId);
       const s = (await loadSession(m.sessionId, tx))!;
       const { queue, memberName } = deriveState(s);
       const sub = queue[0];

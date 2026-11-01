@@ -45,10 +45,10 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="หัวก๊วน" description="หัวก๊วนจัดการได้ทุกอย่าง ตั้งหัวก๊วนร่วมได้จากหน้าสมาชิก (ต้องผูกบัญชี LINE แล้ว)" />
+        <CardHeader title="หัวก๊วน" description="หัวก๊วนจัดการได้ทุกอย่าง ตั้งหัวก๊วนร่วมได้จากหน้าสมาชิก (ต้องมี PIN 6 หลักขึ้นไป)" />
         <ul className="divide-y divide-line">
           {admins.map((a) => (
-            <li key={a.id} className="px-5 py-2.5 text-sm"><b>{a.member?.nickname ?? a.name}</b> <span className="text-muted">· LINE: {a.name}</span></li>
+            <li key={a.id} className="px-5 py-2.5 text-sm"><b>{a.member?.nickname ?? a.name}</b>{!a.member?.pinHash && <span className="text-muted"> · ยังไม่มี PIN (เข้าระบบไม่ได้)</span>}</li>
           ))}
         </ul>
       </Card>
