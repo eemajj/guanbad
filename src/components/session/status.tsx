@@ -14,7 +14,9 @@ export function ChargeStatusBadge({ status }: { status: ChargeStatus }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
-export function ParticipantStatusBadge({ status, court, queue }: { status: ParticipantStatus; court?: string; queue?: number }) {
+export function ParticipantStatusBadge({ status, court, queue, closed }: { status: ParticipantStatus; court?: string; queue?: number; closed?: boolean }) {
+  // After the session ends nobody is queuing any more, so only show who left early.
+  if (closed) return status === "LEFT" ? <Badge tone="outline">กลับก่อน</Badge> : <Badge tone="neutral">อยู่จนจบ</Badge>;
   if (court) return <Badge tone="ok">คอร์ท {court}</Badge>;
   if (status === "RESTING") return <Badge tone="warn">พัก</Badge>;
   if (status === "LEFT") return <Badge tone="outline">กลับแล้ว</Badge>;

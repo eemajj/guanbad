@@ -7,9 +7,17 @@ import { IconShuttle } from "@/components/icons";
 
 export const metadata = { title: "เข้าสู่ระบบ" };
 
+/** Only allow same-site paths: "//evil.com" and "/\evil.com" start with "/" but leave the site. */
+function safeNext(next: string | undefined) {
+  if (!next?.startsWith("/")) return "/";
+  const base = "http://local.invalid";
+  const url = new URL(next, base);
+  return url.origin === base ? url.pathname + url.search + url.hash : "/";
+}
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
-  const to = next?.startsWith("/") ? next : "/";
+  const to = safeNext(next);
   if ((await auth())?.user) redirect(to);
   const settings = await getSettings();
 

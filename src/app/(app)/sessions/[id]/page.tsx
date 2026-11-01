@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireMemberPage } from "@/lib/viewer";
+import { getViewer, requireMemberPage } from "@/lib/viewer";
 import { baht, thaiDateLong } from "@/lib/format";
 import { deriveState, loadSession, type SessionDetail, type SessionState } from "@/server/session-state";
 import { closeSession, reopenSession, startSession } from "@/server/actions/sessions";
@@ -18,6 +18,8 @@ import { TabLinks } from "@/components/ui/tabs";
 type Tab = "players" | "courts" | "bills";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  // Metadata renders even when the page redirects to /login, so don't leak the venue to signed-out visitors.
+  if (!(await getViewer())) return { title: "รอบตี" };
   const s = await prisma.session.findUnique({ where: { id: (await params).id }, select: { venue: true } });
   return { title: s?.venue ?? "รอบตี" };
 }
