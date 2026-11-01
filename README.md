@@ -158,8 +158,10 @@ docker compose exec db psql -U guan -c "CREATE DATABASE guan_test" -c "CREATE DA
 
 ## ขึ้นเว็บจริง (Vercel + Neon/Supabase)
 
-1. สร้างฐานข้อมูล PostgreSQL ฟรีที่ [Neon](https://neon.tech) หรือ [Supabase](https://supabase.com) แล้วคัดลอก connection string
+1. สร้างฐานข้อมูล PostgreSQL ฟรีที่ [Neon](https://neon.tech) เลือก region **Singapore** แล้วคัดลอก connection string แบบ **ไม่ใช่ pooled** (ปิดสวิตช์ "Connection pooling" ชื่อ host จะไม่มีคำว่า `-pooler`) เพราะ `prisma migrate deploy` ต้องต่อตรง ก๊วนเดียวใช้การต่อตรงได้สบาย
 2. push โค้ดขึ้น GitHub แล้ว Import โปรเจกต์ใน [Vercel](https://vercel.com)
+   - ถ้าโค้ดที่จะใช้จริงอยู่ branch `develop`: ตั้ง Production Branch เป็น `develop` (Project Settings → Environments → Production → Branch Tracking)
+   - Settings → Functions → Function Region เลือก **Singapore (sin1)** ให้อยู่ที่เดียวกับฐานข้อมูล
 3. ตั้ง Environment Variables ใน Vercel:
    - ตั้งค่า: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (= URL ของเว็บ), `AUTH_LINE_ID`, `AUTH_LINE_SECRET`
    - **ห้าม**ตั้ง `ALLOW_DEV_LOGIN`
