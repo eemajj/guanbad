@@ -128,39 +128,32 @@ npm run lint
 
 ## ขึ้นเว็บจริง (Vercel + Neon)
 
-ใช้ของฟรีได้ทั้งหมด: Vercel (Hobby) สำหรับเว็บ และ Neon (Free) สำหรับฐานข้อมูล
+ใช้ของฟรีได้ทั้งหมด: Vercel (Hobby) สำหรับเว็บ และ Neon (Free) สำหรับฐานข้อมูล สร้าง Neon จากใน Vercel ได้เลย ไม่ต้องคัดลอก URL เอง
 
-**1. ฐานข้อมูล (Neon)**
-1. สมัคร [Neon](https://neon.tech) → สร้าง Project เลือก Region **Singapore** (ใกล้ไทยที่สุด)
-2. หน้า Connection Details คัดลอก connection string 2 แบบ:
-   - เปิด **Connection pooling** → ได้ URL ที่ host มีคำว่า `-pooler` → ใช้เป็น `DATABASE_URL` (ต่อท้าย `&pgbouncer=true&connect_timeout=15`)
-   - ปิด Connection pooling → ได้ URL ต่อตรง → ใช้เป็น `DIRECT_URL` (ต่อท้าย `&connect_timeout=15`)
-   - `connect_timeout` เผื่อเวลาที่ Neon ฟรีหลับไปตอนไม่มีคนใช้ แล้วต้องตื่นตอนมีคนเข้าครั้งแรก
-
-ถ้าใช้ [Supabase](https://supabase.com): `DATABASE_URL` = Transaction pooler (port 6543 ต่อท้าย `?pgbouncer=true`), `DIRECT_URL` = Session pooler (port 5432)
-
-**2. เว็บ (Vercel)**
 1. push โค้ดขึ้น GitHub แล้ว **Add New → Project** ใน [Vercel](https://vercel.com) เลือก repo นี้ (Framework: Next.js ระบบเลือกให้เอง)
-2. ตั้ง **Environment Variables** ก่อนกด Deploy:
+2. ไปที่แท็บ **Storage → Create Database → Neon** เลือก Region **Singapore** แล้วเชื่อมกับโปรเจกต์นี้
+   - Vercel จะตั้ง `DATABASE_URL` (pooled) และ `DATABASE_URL_UNPOOLED` (ต่อตรง) ให้เอง
+   - ถ้าเปิดใช้กับ Preview ให้เลือกสร้าง database branch ต่อ deployment เพื่อไม่ให้ Preview ไปแตะฐานข้อมูลจริง
+3. ตั้ง **Environment Variables** อีก 2 ตัวเอง:
 
    | ชื่อ | ค่า |
    |---|---|
-   | `DATABASE_URL` | URL แบบ pooled จาก Neon |
-   | `DIRECT_URL` | URL แบบต่อตรงจาก Neon |
    | `AUTH_SECRET` | สร้างด้วย `openssl rand -base64 32` |
    | `SETUP_CODE` | รหัสยาว 12 ตัวขึ้นไป สร้างด้วย `openssl rand -hex 8` เก็บไว้คนเดียว (ใช้ตั้งหัวก๊วนคนแรก และตอนหัวก๊วนลืม PIN) |
 
-   ติ๊กเฉพาะ **Production** สำหรับ `DATABASE_URL` และ `DIRECT_URL` (กันไม่ให้ Preview ของ branch อื่นไปแตะฐานข้อมูลจริง) ไม่ต้องตั้ง `AUTH_URL` บน Vercel และ**ห้าม**ใส่ค่าอื่นจากไฟล์ `.env` ในเครื่อง
-3. กด Deploy ไฟล์ `vercel.json` กำหนดไว้แล้วว่า:
+   ไม่ต้องตั้ง `AUTH_URL` บน Vercel และ**ห้าม**ใส่ค่าอื่นจากไฟล์ `.env` ในเครื่อง
+4. กด Deploy (หรือ Redeploy ถ้าเคย deploy ไปแล้ว ค่า env ใหม่ถึงจะมีผล) ไฟล์ `vercel.json` กำหนดไว้แล้วว่า:
    - รันเว็บที่สิงคโปร์ (`sin1`) ใกล้ฐานข้อมูล ทำให้เร็วและไม่ timeout
    - สร้าง/อัปเดตตารางในฐานข้อมูล (`prisma migrate deploy`) ก่อน build เฉพาะตอน deploy Production
-4. เปิดเว็บ หน้าแรกจะให้ตั้งหัวก๊วนคนแรก ใส่ `SETUP_CODE` ชื่อเล่น และ PIN 6 หลัก (ถ้าเพิ่งตั้งหรือแก้ env ต้องกด Deployments → Redeploy ก่อน ค่าใหม่ถึงจะมีผล) → เมนู **ตั้งค่า** → ใส่ชื่อก๊วนและพร้อมเพย์
-5. เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคน ส่ง PIN ทางแชทส่วนตัว (ไม่ใช่ในกลุ่ม)
-6. (ไม่บังคับ) ผูกโดเมนของตัวเองที่ Vercel → Settings → Domains
+5. เปิดเว็บ หน้าแรกจะให้ตั้งหัวก๊วนคนแรก ใส่ `SETUP_CODE` ชื่อเล่น และ PIN 6 หลัก → เมนู **ตั้งค่า** → ใส่ชื่อก๊วนและพร้อมเพย์
+6. เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคน ส่ง PIN ทางแชทส่วนตัว (ไม่ใช่ในกลุ่ม)
+7. (ไม่บังคับ) ผูกโดเมนของตัวเองที่ Vercel → Settings → Domains
+
+ถ้าเจอ error `P1001: Can't reach database server` แปลว่า Neon ฟรีหลับอยู่แล้วตื่นไม่ทัน ให้ต่อท้าย connection string ด้วย `&connect_timeout=15`
 
 ห้ามรัน `npm run db:seed` กับฐานข้อมูลจริง (สคริปต์จะไม่ยอมรันเมื่อ `NODE_ENV=production` อยู่แล้ว)
 
-ใช้กับ Railway, Render หรือเซิร์ฟเวอร์ของตัวเองได้เหมือนกัน: ตั้ง env ชุดเดียวกัน (บวก `AUTH_URL` = URL ของเว็บ) รัน `npx prisma migrate deploy && npm run build` แล้ว `npm start` และให้ proxy เขียนทับ header `x-real-ip` (ใช้จำกัดการเดา PIN ต่อเครือข่าย)
+ใช้กับ Railway, Render หรือเซิร์ฟเวอร์ของตัวเองได้เหมือนกัน: ตั้ง `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `AUTH_SECRET`, `SETUP_CODE` และ `AUTH_URL` (= URL ของเว็บ) รัน `npx prisma migrate deploy && npm run build` แล้ว `npm start` และให้ proxy เขียนทับ header `x-real-ip` (ใช้จำกัดการเดา PIN ต่อเครือข่าย)
 
 ## การใช้งานในแต่ละรอบ
 

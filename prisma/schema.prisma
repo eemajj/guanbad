@@ -7,10 +7,10 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  /// ที่แอปใช้ตอนรัน: บน Vercel ใช้ URL แบบ pooled (Neon "-pooler" / Supabase port 6543) เพราะ serverless เปิด connection บ่อย
+  /// ที่แอปใช้ตอนรัน: บน Vercel เป็น URL แบบ pooled เพราะ serverless เปิด connection บ่อย
   url       = env("DATABASE_URL")
-  /// ที่ใช้รัน migration: ต่อตรง ไม่ผ่าน pooler (ในเครื่องใช้ค่าเดียวกับ DATABASE_URL)
-  directUrl = env("DIRECT_URL")
+  /// ที่ใช้รัน migration: ต่อตรง ไม่ผ่าน pooler ชื่อตรงกับที่ Neon integration ตั้งให้ (ในเครื่องใช้ค่าเดียวกับ DATABASE_URL)
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum Role {
