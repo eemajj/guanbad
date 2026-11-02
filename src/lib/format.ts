@@ -26,9 +26,17 @@ export function todayISO() {
 export const dateFromISO = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 export const isoFromDate = (d: Date) => d.toISOString().slice(0, 10);
 
+/** Month bounds for @db.Date columns (stored as UTC midnight). */
 export function monthRange(ym: string) {
   const [y, m] = ym.split("-").map(Number);
   return { from: new Date(Date.UTC(y, m - 1, 1)), to: new Date(Date.UTC(y, m, 1)) };
+}
+
+/** Month bounds for timestamps (e.g. paidAt): the month as lived in Bangkok (UTC+7, no DST). */
+export function monthRangeAt(ym: string) {
+  const { from, to } = monthRange(ym);
+  const offset = 7 * 3_600_000;
+  return { from: new Date(from.getTime() - offset), to: new Date(to.getTime() - offset) };
 }
 
 export const thaiMonth = (ym: string) => {

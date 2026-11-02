@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { dateFromISO, monthRange, todayISO } from "@/lib/format";
+import { dateFromISO, monthRange, monthRangeAt, todayISO } from "@/lib/format";
 import { emptyRecord, playerRecords, type PlayerRecord } from "@/domain/results";
 
 export type MemberStats = PlayerRecord & { sessions: number; outstanding: number; lastSession: Date | null };
@@ -73,8 +73,9 @@ export async function outstandingCharges(memberId?: string) {
 /** Everything for the finance page for one calendar month (YYYY-MM). */
 export async function financeMonth(ym: string) {
   const { from, to } = monthRange(ym);
+  const paidIn = monthRangeAt(ym);
   const [paid, sessions, expenses] = await Promise.all([
-    prisma.charge.aggregate({ where: { status: "PAID", paidAt: { gte: from, lt: to } }, _sum: { total: true }, _count: true }),
+    prisma.charge.aggregate({ where: { status: "PAID", paidAt: { gte: paidIn.from, lt: paidIn.to } }, _sum: { total: true }, _count: true }),
     prisma.session.findMany({
       where: { date: { gte: from, lt: to }, status: "CLOSED" },
       orderBy: { date: "asc" },

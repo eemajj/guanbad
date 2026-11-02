@@ -1,4 +1,4 @@
-// ระบบจัดการก๊วนแบดมินตัน — data model
+// ก๊วนแบด — data model
 // Money is stored in satang (1 baht = 100 satang) as integers to avoid rounding errors.
 
 generator client {
@@ -6,8 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  /// ที่แอปใช้ตอนรัน: บน Vercel ใช้ URL แบบ pooled (Neon "-pooler" / Supabase port 6543) เพราะ serverless เปิด connection บ่อย
+  url       = env("DATABASE_URL")
+  /// ที่ใช้รัน migration: ต่อตรง ไม่ผ่าน pooler (ในเครื่องใช้ค่าเดียวกับ DATABASE_URL)
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {

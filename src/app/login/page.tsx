@@ -137,7 +137,7 @@ function AdminForm({ mode, error }: { mode: "setup" | "recover"; error?: string 
   }
 
   if (setupBlocked) {
-    return <p className="rounded-lg bg-warn-soft p-3 text-sm text-warn">ต้องตั้งค่า <code>SETUP_CODE</code> ใน Environment Variables ของเว็บก่อน แล้วเปิดหน้านี้ใหม่ (ดู README)</p>;
+    return <p className="rounded-lg bg-warn-soft p-3 text-sm text-warn">ต้องตั้งค่า <code>SETUP_CODE</code> (ยาว 12 ตัวขึ้นไป) ใน Environment Variables ของเว็บ แล้ว Redeploy ก่อน (ดู README)</p>;
   }
   return (
     <form action={submit} className="flex flex-col gap-3">

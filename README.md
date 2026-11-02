@@ -1,4 +1,6 @@
-# ระบบจัดการก๊วนแบดมินตัน
+# ก๊วนแบด
+
+ระบบจัดการก๊วนแบดมินตัน
 
 เว็บแอปสำหรับหัวก๊วนและสมาชิก: เปิดรอบตี ลงชื่อ จัดคู่อัตโนมัติ คิดค่าคอร์ท/ค่าลูก และเก็บเงินผ่าน QR พร้อมเพย์
 สมาชิกเข้าระบบด้วย **ชื่อ + PIN** ไม่ต้องสมัคร ไม่ต้องมีอีเมลหรือ LINE
@@ -124,17 +126,41 @@ npm test
 npm run lint
 ```
 
-## ขึ้นเว็บจริง (Vercel + Neon/Supabase)
+## ขึ้นเว็บจริง (Vercel + Neon)
 
-1. สร้างฐานข้อมูล PostgreSQL ฟรีที่ [Neon](https://neon.tech) หรือ [Supabase](https://supabase.com) แล้วคัดลอก connection string
-2. push โค้ดขึ้น GitHub แล้ว Import โปรเจกต์ใน [Vercel](https://vercel.com)
-3. ตั้ง Environment Variables ใน Vercel:
-   - ตั้งค่า: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (= URL ของเว็บ), `SETUP_CODE` (รหัสยาว 12 ตัวขึ้นไปที่รู้คนเดียว เช่น `openssl rand -hex 8` เก็บไว้ใช้ตอนหัวก๊วนลืม PIN ด้วย)
-4. ตั้ง Build Command เป็น `prisma migrate deploy && npm run build` เพื่อให้ตารางในฐานข้อมูลถูกสร้างหรืออัปเดตทุกครั้งที่ deploy
-5. เปิดเว็บ ใส่ `SETUP_CODE` ชื่อเล่น และ PIN 6 หลักของหัวก๊วน → เมนู **ตั้งค่า** → ใส่ชื่อก๊วนและพร้อมเพย์
-6. เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคน ส่ง PIN ทางแชทส่วนตัว (ไม่ใช่ในกลุ่ม)
+ใช้ของฟรีได้ทั้งหมด: Vercel (Hobby) สำหรับเว็บ และ Neon (Free) สำหรับฐานข้อมูล
 
-ใช้กับ Railway, Render หรือเซิร์ฟเวอร์ของตัวเองได้เหมือนกัน รัน `npm run build` แล้ว `npm start` ทำงานบน Node.js ปกติ
+**1. ฐานข้อมูล (Neon)**
+1. สมัคร [Neon](https://neon.tech) → สร้าง Project เลือก Region **Singapore** (ใกล้ไทยที่สุด)
+2. หน้า Connection Details คัดลอก connection string 2 แบบ:
+   - เปิด **Connection pooling** → ได้ URL ที่ host มีคำว่า `-pooler` → ใช้เป็น `DATABASE_URL` (ต่อท้าย `&pgbouncer=true&connect_timeout=15`)
+   - ปิด Connection pooling → ได้ URL ต่อตรง → ใช้เป็น `DIRECT_URL` (ต่อท้าย `&connect_timeout=15`)
+   - `connect_timeout` เผื่อเวลาที่ Neon ฟรีหลับไปตอนไม่มีคนใช้ แล้วต้องตื่นตอนมีคนเข้าครั้งแรก
+
+ถ้าใช้ [Supabase](https://supabase.com): `DATABASE_URL` = Transaction pooler (port 6543 ต่อท้าย `?pgbouncer=true`), `DIRECT_URL` = Session pooler (port 5432)
+
+**2. เว็บ (Vercel)**
+1. push โค้ดขึ้น GitHub แล้ว **Add New → Project** ใน [Vercel](https://vercel.com) เลือก repo นี้ (Framework: Next.js ระบบเลือกให้เอง)
+2. ตั้ง **Environment Variables** ก่อนกด Deploy:
+
+   | ชื่อ | ค่า |
+   |---|---|
+   | `DATABASE_URL` | URL แบบ pooled จาก Neon |
+   | `DIRECT_URL` | URL แบบต่อตรงจาก Neon |
+   | `AUTH_SECRET` | สร้างด้วย `openssl rand -base64 32` |
+   | `SETUP_CODE` | รหัสยาว 12 ตัวขึ้นไป สร้างด้วย `openssl rand -hex 8` เก็บไว้คนเดียว (ใช้ตั้งหัวก๊วนคนแรก และตอนหัวก๊วนลืม PIN) |
+
+   ติ๊กเฉพาะ **Production** สำหรับ `DATABASE_URL` และ `DIRECT_URL` (กันไม่ให้ Preview ของ branch อื่นไปแตะฐานข้อมูลจริง) ไม่ต้องตั้ง `AUTH_URL` บน Vercel และ**ห้าม**ใส่ค่าอื่นจากไฟล์ `.env` ในเครื่อง
+3. กด Deploy ไฟล์ `vercel.json` กำหนดไว้แล้วว่า:
+   - รันเว็บที่สิงคโปร์ (`sin1`) ใกล้ฐานข้อมูล ทำให้เร็วและไม่ timeout
+   - สร้าง/อัปเดตตารางในฐานข้อมูล (`prisma migrate deploy`) ก่อน build เฉพาะตอน deploy Production
+4. เปิดเว็บ หน้าแรกจะให้ตั้งหัวก๊วนคนแรก ใส่ `SETUP_CODE` ชื่อเล่น และ PIN 6 หลัก (ถ้าเพิ่งตั้งหรือแก้ env ต้องกด Deployments → Redeploy ก่อน ค่าใหม่ถึงจะมีผล) → เมนู **ตั้งค่า** → ใส่ชื่อก๊วนและพร้อมเพย์
+5. เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคน ส่ง PIN ทางแชทส่วนตัว (ไม่ใช่ในกลุ่ม)
+6. (ไม่บังคับ) ผูกโดเมนของตัวเองที่ Vercel → Settings → Domains
+
+ห้ามรัน `npm run db:seed` กับฐานข้อมูลจริง (สคริปต์จะไม่ยอมรันเมื่อ `NODE_ENV=production` อยู่แล้ว)
+
+ใช้กับ Railway, Render หรือเซิร์ฟเวอร์ของตัวเองได้เหมือนกัน: ตั้ง env ชุดเดียวกัน (บวก `AUTH_URL` = URL ของเว็บ) รัน `npx prisma migrate deploy && npm run build` แล้ว `npm start` และให้ proxy เขียนทับ header `x-real-ip` (ใช้จำกัดการเดา PIN ต่อเครือข่าย)
 
 ## การใช้งานในแต่ละรอบ
 

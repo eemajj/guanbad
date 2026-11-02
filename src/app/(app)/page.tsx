@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireMemberPage } from "@/lib/viewer";
-import { baht, monthRange, thaiDate, todayISO } from "@/lib/format";
+import { baht, monthRange, monthRangeAt, thaiDate, todayISO } from "@/lib/format";
 import { memberStats, outstandingCharges, upcomingSessions } from "@/server/queries";
 import { setChargeStatus } from "@/server/actions/money";
 import { ActionButton } from "@/components/action";
@@ -85,10 +85,11 @@ export default async function Dashboard() {
 async function AdminOverview() {
   const ym = todayISO().slice(0, 7);
   const { from, to } = monthRange(ym);
+  const paidIn = monthRangeAt(ym);
   const [sessionsThisMonth, playersThisMonth, collected, owed, reported] = await Promise.all([
     prisma.session.count({ where: { date: { gte: from, lt: to }, status: { not: "OPEN" } } }),
     prisma.participant.findMany({ where: { session: { date: { gte: from, lt: to }, status: { not: "OPEN" } } }, distinct: ["memberId"], select: { memberId: true } }),
-    prisma.charge.aggregate({ where: { status: "PAID", paidAt: { gte: from, lt: to } }, _sum: { total: true } }),
+    prisma.charge.aggregate({ where: { status: "PAID", paidAt: { gte: paidIn.from, lt: paidIn.to } }, _sum: { total: true } }),
     prisma.charge.aggregate({ where: { status: { in: ["UNPAID", "REPORTED"] } }, _sum: { total: true }, _count: true }),
     prisma.charge.findMany({ where: { status: "REPORTED" }, include: { member: true, session: true }, orderBy: { reportedAt: "asc" } }),
   ]);

@@ -5,7 +5,7 @@ import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
-  return { title: { default: s?.groupName ?? "ก๊วนแบด", template: `%s · ${s?.groupName ?? "ก๊วนแบด"}` }, description: "ระบบจัดการก๊วนแบดมินตัน" };
+  return { title: { default: s?.groupName ?? "ก๊วนแบด", template: `%s · ${s?.groupName ?? "ก๊วนแบด"}` }, description: "ก๊วนแบด — ระบบจัดการก๊วนแบดมินตัน" };
 }
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#144c37" };
