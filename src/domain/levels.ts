@@ -15,4 +15,5 @@ export const LEVEL_ORDER = Object.keys(LEVELS) as Level[];
 
 export const levelRank = (level: Level) => LEVELS[level].rank;
 export const levelCode = (level: Level) => LEVELS[level].code;
-export const isLevel = (v: unknown): v is Level => typeof v === "string" && v in LEVELS;
+// Object.hasOwn, not `in`: "constructor" or "toString" would pass via the prototype chain.
+export const isLevel = (v: unknown): v is Level => typeof v === "string" && Object.hasOwn(LEVELS, v);

@@ -1,4 +1,4 @@
-// ระบบจัดการก๊วนแบดมินตัน — data model
+// ก๊วนแบด — data model
 // Money is stored in satang (1 baht = 100 satang) as integers to avoid rounding errors.
 
 generator client {
@@ -6,8 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  /// ที่แอปใช้ตอนรัน: บน Vercel ใช้ URL แบบ pooled (Neon "-pooler" / Supabase port 6543) เพราะ serverless เปิด connection บ่อย
+  url       = env("DATABASE_URL")
+  /// ที่ใช้รัน migration: ต่อตรง ไม่ผ่าน pooler (ในเครื่องใช้ค่าเดียวกับ DATABASE_URL)
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -93,8 +96,14 @@ model Member {
   active         Boolean       @default(true)
   userId         String?       @unique
   user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  /// ลิงก์ให้สมาชิกที่หัวก๊วนสร้างไว้ มาผูกกับบัญชี LINE ของตัวเอง
-  claimToken     String?       @unique
+  /// PIN สำหรับเข้าระบบ (scrypt hash) ยังไม่ตั้ง = เข้าระบบไม่ได้
+  pinHash        String?
+  pinLength      Int?
+  /// เพิ่มทุกครั้งที่เปลี่ยน PIN เพื่อให้ทุกเครื่องที่ล็อกอินค้างไว้หลุด
+  pinVersion     Int           @default(0)
+  /// ใส่ PIN ผิดติดกันกี่ครั้ง (ล้างเมื่อเข้าถูก หรือหัวก๊วนตั้ง PIN ใหม่)
+  pinFailures    Int           @default(0)
+  pinLockedUntil DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   participations Participant[]
@@ -231,4 +240,15 @@ model Setting {
   defaultVenue        String?
   defaultCourtRate    Int     @default(18000)
   defaultShuttlePrice Int     @default(8500)
+}
+
+/// PIN (หรือรหัสตั้งค่า) ที่ใส่ผิด แยกตาม IP ไว้กันการสุ่มเดาหลายชื่อจากเครื่องเดียว
+model LoginFailure {
+  id        String   @id @default(cuid())
+  ip        String
+  /// ชื่อที่ถูกลอง (ว่าง = รหัสตั้งค่า SETUP_CODE)
+  memberId  String?
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
 }

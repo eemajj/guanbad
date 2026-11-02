@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/viewer";
 import { baht, thaiDate } from "@/lib/format";
-import { LEVELS, LEVEL_ORDER } from "@/domain/levels";
+import { LEVELS, LEVEL_ORDER, isLevel } from "@/domain/levels";
 import { memberStats } from "@/server/queries";
 import { formatRate, winRate } from "@/domain/results";
 import { LevelBadge } from "@/components/level";
@@ -13,7 +13,7 @@ import { Input, Select } from "@/components/ui/field";
 import { LinkButton, Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TabLinks } from "@/components/ui/tabs";
-import type { Level, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export const metadata = { title: "สมาชิก" };
 
@@ -24,7 +24,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const where: Prisma.MemberWhereInput = {
     active: !inactive,
     ...(q ? { OR: [{ nickname: { contains: q, mode: "insensitive" } }, { fullName: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] } : {}),
-    ...(level in LEVELS ? { level: level as Level } : {}),
+    ...(isLevel(level) ? { level } : {}),
   };
   const [members, counts] = await Promise.all([
     prisma.member.findMany({ where, orderBy: { nickname: "asc" }, include: { user: { select: { role: true } } } }),
@@ -91,7 +91,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
             </table>
           </div>
         ) : (
-          <EmptyState title={q || level ? "ไม่พบสมาชิกตามเงื่อนไข" : "ยังไม่มีสมาชิก"} description="เพิ่มสมาชิกเอง หรือให้เพื่อนล็อกอินด้วย LINE แล้วสร้างโปรไฟล์" />
+          <EmptyState title={q || level ? "ไม่พบสมาชิกตามเงื่อนไข" : "ยังไม่มีสมาชิก"} description="เพิ่มสมาชิก แล้วตั้ง PIN ให้แต่ละคนเพื่อเข้าระบบ" />
         )}
       </Card>
     </>

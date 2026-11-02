@@ -2,7 +2,8 @@
   "name": "guan-badminton",
   "version": "1.0.0",
   "private": true,
-  "description": "ระบบจัดการก๊วนแบดมินตัน",
+  "engines": { "node": ">=20" },
+  "description": "ก๊วนแบด — ระบบจัดการก๊วนแบดมินตัน",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",

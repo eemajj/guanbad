@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { History, orderQueue, pickMatch, planMatches, type QueueEntry } from "./matchmaking";
 import { computeFees, hoursBetween, roundUpToBaht } from "./fees";
 import { crc16, normalizePromptpayId, promptpayPayload } from "./promptpay";
+import { isLevel } from "./levels";
+import { monthRange, monthRangeAt } from "@/lib/format";
 
 const q = (id: string, rank: number, queuedAt: number, games = 0): QueueEntry => ({ id, rank, queuedAt, games });
 
@@ -104,5 +106,21 @@ describe("promptpay", () => {
     // Same fields as ours (field order differs, which EMVCo allows)
     const ours = promptpayPayload("000-000-0000", 4.22)!;
     for (const field of ["0016A000000677010111", "01130066000000000", "5802TH", "5303764", "54044.22"]) expect(ours).toContain(field);
+  });
+});
+
+describe("levels", () => {
+  it("accepts real levels and rejects prototype keys", () => {
+    expect(isLevel("S")).toBe(true);
+    expect(isLevel("P_MINUS")).toBe(true);
+    for (const bad of ["constructor", "toString", "__proto__", "zzz", ""]) expect(isLevel(bad)).toBe(false);
+  });
+});
+
+describe("month ranges", () => {
+  it("timestamps use the Bangkok month, dates use the calendar month", () => {
+    expect(monthRange("2026-11").from.toISOString()).toBe("2026-11-01T00:00:00.000Z");
+    expect(monthRangeAt("2026-11").from.toISOString()).toBe("2026-10-31T17:00:00.000Z");
+    expect(monthRangeAt("2026-12").to.toISOString()).toBe("2026-12-31T17:00:00.000Z");
   });
 });

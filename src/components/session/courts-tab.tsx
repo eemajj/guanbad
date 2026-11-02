@@ -111,7 +111,8 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 ${s.status === "LIVE" ? "lg:grid-cols-2" : ""}`}>
+        {s.status === "LIVE" && (
         <Card>
           <CardHeader title="คิวรอ" description="คนที่รอนานที่สุดได้ลงก่อน แล้วระบบแบ่งทีมให้ระดับมือใกล้กัน และเลี่ยงคู่ซ้ำ" />
           {st.queue.length ? (
@@ -140,6 +141,7 @@ export function CourtsTab({ s, st, isAdmin }: { s: SessionDetail; st: SessionSta
             </CardBody>
           )}
         </Card>
+        )}
 
         <Card>
           <CardHeader

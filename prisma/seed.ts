@@ -2,8 +2,10 @@
  * ข้อมูลตัวอย่างสำหรับลองระบบในเครื่อง (ห้ามรันบนฐานข้อมูลจริง)
  *   npm run db:seed
  * สร้างสมาชิกตัวอย่าง 12 คน, รอบที่จบแล้ว 1 รอบ (มีบิล) และรอบที่เปิดรับชื่อ 1 รอบ
+ * เข้าระบบได้ทุกคน: หัวก๊วน "ต้น" PIN 135790 · สมาชิกคนอื่น PIN 2580
  */
 import { PrismaClient, type Level } from "@prisma/client";
+import { hashPin } from "../src/server/pin";
 
 const prisma = new PrismaClient();
 
@@ -19,7 +21,10 @@ async function main() {
     return;
   }
   await prisma.setting.upsert({ where: { id: "main" }, create: { id: "main", groupName: "ก๊วนแบดตัวอย่าง", defaultVenue: "สนามแบดบ้านสวน" }, update: {} });
-  const members = await Promise.all(SAMPLE.map(([nickname, level]) => prisma.member.create({ data: { nickname, level } })));
+  const memberPin = await hashPin("2580");
+  const members = await Promise.all(SAMPLE.map(([nickname, level]) => prisma.member.create({ data: { nickname, level, pinHash: memberPin, pinLength: 4 } })));
+  const admin = await prisma.user.create({ data: { name: members[0].nickname, role: "ADMIN" } });
+  await prisma.member.update({ where: { id: members[0].id }, data: { userId: admin.id, pinHash: await hashPin("135790"), pinLength: 6 } });
 
   const day = (offset: number) => {
     const d = new Date();

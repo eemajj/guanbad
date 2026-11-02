@@ -74,12 +74,12 @@ export function PlayersTab({ s, st, isAdmin, roster, myMemberId }: { s: SessionD
                         {p.source === "SELF" && <span className="text-xs text-muted">ลงชื่อเอง</span>}
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted sm:hidden">
-                        <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
+                        <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} closed={closed} />
                         {stat.games} เกม · ชนะ {stat.wins} แพ้ {stat.losses}
                       </div>
                     </td>
                     <td className="hidden px-2 py-2.5 sm:table-cell">
-                      <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} />
+                      <ParticipantStatusBadge status={p.status} court={stat.playing ? courtName.get(stat.playing.courtId) : undefined} queue={s.status === "LIVE" ? queuePos.get(p.memberId) : undefined} closed={closed} />
                     </td>
                     <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.games}</td>
                     <td className="num hidden px-2 py-2.5 text-right sm:table-cell">{stat.wins}–{stat.losses}</td>

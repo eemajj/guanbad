@@ -1,32 +1,41 @@
-import NextAuth, { type DefaultSession } from "next-auth";
-import Line from "next-auth/providers/line";
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
+import { checkMemberPin, clientIp, type PinCheck } from "@/server/pin";
 
 declare module "next-auth" {
   interface Session {
     user: { id: string } & DefaultSession["user"];
+    pinVersion?: number;
+  }
+  interface User {
+    pinVersion?: number;
   }
 }
 
-export const devLoginEnabled = process.env.ALLOW_DEV_LOGIN === "true";
-export const lineLoginEnabled = Boolean(process.env.AUTH_LINE_ID && process.env.AUTH_LINE_SECRET);
-
-const adminLineIds = (process.env.ADMIN_LINE_IDS ?? "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-/** Create or update our own User row for an external login, and decide the role. */
-async function upsertUser(externalId: string, name: string, image?: string | null) {
-  const existing = await prisma.user.findUnique({ where: { lineId: externalId } });
-  if (existing) {
-    return prisma.user.update({ where: { id: existing.id }, data: { name, image: image ?? existing.image } });
+declare module "@auth/core/jwt" {
+  interface JWT {
+    uid?: string;
+    pv?: number;
   }
-  const listedAdmin = adminLineIds.includes(externalId.replace(/^line:/, ""));
-  const anyAdmin = await prisma.user.count({ where: { role: "ADMIN" } });
-  return prisma.user.create({
-    data: { lineId: externalId, name, image, role: listedAdmin || anyAdmin === 0 ? "ADMIN" : "MEMBER" },
+}
+
+/** `code` ends up in the login page URL, so it only says which message to show. */
+export class PinSignInError extends CredentialsSignin {
+  constructor(public code: Extract<PinCheck, { ok: false }>["reason"]) {
+    super();
+  }
+}
+
+/** Every member who logs in gets a User row, which carries the role (admin or member). */
+async function userForMember(memberId: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${memberId}))`;
+    const m = await tx.member.findUniqueOrThrow({ where: { id: memberId }, include: { user: true } });
+    if (m.user) return m.user;
+    const user = await tx.user.create({ data: { name: m.nickname } });
+    await tx.member.update({ where: { id: m.id }, data: { userId: user.id } });
+    return user;
   });
 }
 
@@ -34,35 +43,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 60 },
   pages: { signIn: "/login" },
+  // A wrong PIN is normal use, not a server error worth a stack trace.
+  logger: { error: (e) => { if (!(e instanceof CredentialsSignin)) console.error(e); } },
   providers: [
-    ...(lineLoginEnabled ? [Line] : []),
-    ...(devLoginEnabled
-      ? [
-          Credentials({
-            id: "dev",
-            name: "ทดสอบ",
-            credentials: { name: { label: "ชื่อ" } },
-            authorize: async (c) => {
-              const name = String(c?.name ?? "").trim().slice(0, 40);
-              return name ? { id: `dev:${name}`, name } : null;
-            },
-          }),
-        ]
-      : []),
+    Credentials({
+      id: "pin",
+      name: "PIN",
+      credentials: { memberId: {}, pin: {} },
+      authorize: async (c, request) => {
+        const memberId = String(c?.memberId ?? "");
+        const pin = String(c?.pin ?? "");
+        if (!memberId || !/^\d{1,8}$/.test(pin)) throw new PinSignInError("wrong");
+        const result = await checkMemberPin(memberId, pin, clientIp(request.headers));
+        if (!result.ok) throw new PinSignInError(result.reason);
+        const user = await userForMember(memberId);
+        return { id: user.id, name: user.name, pinVersion: result.pinVersion };
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, account, user, profile }) {
-      if (account) {
-        const externalId = account.provider === "line" ? `line:${account.providerAccountId}` : String(user?.id);
-        const name = (profile?.name as string | undefined) ?? user?.name ?? "สมาชิก";
-        const image = (profile?.picture as string | undefined) ?? user?.image ?? null;
-        const dbUser = await upsertUser(externalId, name, image);
-        token.uid = dbUser.id;
+    async jwt({ token, user }) {
+      if (user) {
+        token.uid = user.id;
+        token.pv = user.pinVersion;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token.uid) session.user.id = token.uid as string;
+      if (token.uid) session.user.id = token.uid;
+      session.pinVersion = token.pv;
       return session;
     },
   },
